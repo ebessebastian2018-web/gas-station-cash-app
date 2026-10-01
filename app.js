@@ -1,5 +1,12 @@
 'use strict';
 
+const SUPABASE_URL = 'https://dxsuybxregdldmkduuye.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_bBWO0GD6aZj5aYMzFpqnng_qYqhBoOP';
+const hasSupabaseConfig = !SUPABASE_URL.includes('YOUR_') && !SUPABASE_PUBLISHABLE_KEY.includes('YOUR_');
+const supabaseClient = hasSupabaseConfig && window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+  : null;
+
 const state = {
   dashboard: null,
   type: 'income',
@@ -57,20 +64,20 @@ function escapeHtml(value) {
   })[character]);
 }
 
-async function api(path, options = {}) {
-  let response;
-  try {
-    response = await fetch(path, {
-      credentials: 'same-origin',
-      ...options,
-      headers: { 'content-type': 'application/json', ...(options.headers || {}) },
-    });
-  } catch {
-    throw new Error('Backend tidak dapat dijangkau. Pastikan node backend/app.js masih berjalan.');
+function supabaseErrorMessage(error) {
+  const message = String(error?.message || 'Permintaan ke Supabase gagal.');
+  if (message.toLowerCase().includes('failed to fetch')) return 'Tidak dapat menghubungi Supabase. Periksa URL, publishable key, dan koneksi internet.';
+  if (error?.code === '42501' || message.toLowerCase().includes('row-level security')) {
+    return 'Akses data ditolak oleh RLS. Jalankan ulang backend/schema.sql di Supabase SQL Editor.';
   }
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw Object.assign(new Error(payload.error || 'Permintaan gagal.'), { status: response.status });
-  return payload;
+  if (error?.code === '42P01' || error?.code === 'PGRST205') return 'Tabel belum tersedia. Jalankan backend/schema.sql di Supabase SQL Editor.';
+  if (error?.code === '23505') return 'Masih ada shift yang terbuka. Tutup shift tersebut terlebih dahulu.';
+  return message;
+}
+
+function assertSupabaseSuccess(result) {
+  if (result.error) throw new Error(supabaseErrorMessage(result.error));
+  return result.data;
 }
 
 function showAuthScreen(message = '') {
@@ -82,17 +89,17 @@ function showAuthScreen(message = '') {
 
 async function initializeApplication() {
   try {
-    const health = await api('/api/health');
-    if (!health.configured) {
-      showAuthScreen('Konfigurasi SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY belum lengkap di .env.');
+    if (!window.supabase) {
+      showAuthScreen('Library Supabase belum termuat. Periksa koneksi internet atau CDN.');
       return;
     }
-    if (!health.authConfigured) {
-      showAuthScreen('Tambahkan SUPABASE_ANON_KEY dari project yang sama ke .env untuk login.');
+    if (!supabaseClient) {
+      showAuthScreen('Isi SUPABASE_URL dan SUPABASE_PUBLISHABLE_KEY pada frontend/app.js.');
       return;
     }
-    const session = await api('/api/auth/session');
-    if (!session.authenticated) {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    if (!data.session) {
       showAuthScreen();
       return;
     }
@@ -100,7 +107,7 @@ async function initializeApplication() {
     elements.appShell.hidden = false;
     await refreshDashboard();
   } catch (error) {
-    showAuthScreen(error.message);
+    showAuthScreen(supabaseErrorMessage(error));
   }
 }
 
@@ -110,22 +117,32 @@ async function signIn(event) {
   elements.authMessage.textContent = '';
   const values = Object.fromEntries(new FormData(elements.loginForm).entries());
   try {
-    await api('/api/auth/login', { method: 'POST', body: JSON.stringify(values) });
+    if (!supabaseClient) throw new Error('Isi SUPABASE_URL dan SUPABASE_PUBLISHABLE_KEY pada frontend/app.js.');
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email: values.email.trim(),
+      password: values.password,
+    });
+    if (error) {
+      const message = error.message.toLowerCase().includes('invalid login credentials')
+        ? 'Email atau password salah, atau email akun belum dikonfirmasi.'
+        : supabaseErrorMessage(error);
+      throw new Error(message);
+    }
     elements.authScreen.hidden = true;
     elements.appShell.hidden = false;
     await refreshDashboard();
   } catch (error) {
-    elements.authMessage.textContent = error.message;
+    elements.authMessage.textContent = supabaseErrorMessage(error);
   } finally {
     elements.loginButton.disabled = false;
   }
 }
 
 async function signOut() {
-  try { await api('/api/auth/logout', { method: 'POST', body: '{}' }); } catch { /* Clear the local view even if the server is offline. */ }
+  const { error } = await supabaseClient.auth.signOut();
   state.dashboard = null;
   elements.loginForm.reset();
-  showAuthScreen('Anda sudah keluar dari akun.');
+  showAuthScreen(error ? supabaseErrorMessage(error) : 'Anda sudah keluar dari akun.');
 }
 
 function setConnection(connected) {
@@ -254,29 +271,86 @@ async function refreshDashboard() {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
   }).format(new Date());
   try {
-    const health = await api('/api/health');
-    if (!health.configured) {
-      state.dashboard = null;
-      setConnection(false);
-      return;
+    if (!supabaseClient) throw new Error('Isi SUPABASE_URL dan SUPABASE_PUBLISHABLE_KEY pada frontend/app.js.');
+    const rangeEnd = new Date(`${date}T23:59:59.999Z`);
+    const rangeStart = new Date(`${date}T00:00:00.000Z`);
+    rangeStart.setUTCDate(rangeStart.getUTCDate() - 13);
+    const [transactionsResult, categoriesResult, cashiersResult, shiftsResult] = await Promise.all([
+      supabaseClient.from('cash_transactions')
+        .select('id,shift_id,amount,description,payment_method,occurred_at,category:transaction_categories(id,name,type),shift:shifts(id,cashier:cashiers(full_name))')
+        .gte('occurred_at', rangeStart.toISOString())
+        .lte('occurred_at', rangeEnd.toISOString())
+        .order('occurred_at', { ascending: false })
+        .limit(500),
+      supabaseClient.from('transaction_categories')
+        .select('id,name,type').eq('active', true).order('name'),
+      supabaseClient.from('cashiers')
+        .select('id,full_name').eq('active', true).order('full_name'),
+      supabaseClient.from('shifts')
+        .select('id,cashier_id,opened_at,opening_cash,status,cashier:cashiers(full_name)')
+        .eq('status', 'open').order('opened_at', { ascending: false }).limit(1),
+    ]);
+    const transactions = assertSupabaseSuccess(transactionsResult) || [];
+    const categories = assertSupabaseSuccess(categoriesResult) || [];
+    const cashiers = assertSupabaseSuccess(cashiersResult) || [];
+    const openShifts = assertSupabaseSuccess(shiftsResult) || [];
+    const activeShift = openShifts[0] || null;
+    const todayTransactions = transactions.filter((transaction) => transaction.occurred_at.slice(0, 10) === date);
+    const shiftTransactionsResult = activeShift
+      ? await supabaseClient.from('cash_transactions')
+        .select('amount,payment_method,category:transaction_categories(type)')
+        .eq('shift_id', activeShift.id)
+      : null;
+    const shiftTransactions = activeShift ? assertSupabaseSuccess(shiftTransactionsResult) || [] : [];
+    const income = todayTransactions
+      .filter((transaction) => transaction.payment_method === 'cash' && transaction.category?.type === 'income')
+      .reduce((total, transaction) => total + Number(transaction.amount), 0);
+    const expense = todayTransactions
+      .filter((transaction) => transaction.payment_method === 'cash' && transaction.category?.type === 'expense')
+      .reduce((total, transaction) => total + Number(transaction.amount), 0);
+    const shiftIncome = shiftTransactions
+      .filter((transaction) => transaction.payment_method === 'cash' && transaction.category?.type === 'income')
+      .reduce((total, transaction) => total + Number(transaction.amount), 0);
+    const shiftExpense = shiftTransactions
+      .filter((transaction) => transaction.payment_method === 'cash' && transaction.category?.type === 'expense')
+      .reduce((total, transaction) => total + Number(transaction.amount), 0);
+    const chart = [];
+    const chartStart = new Date(rangeStart);
+    for (let offset = 0; offset < 14; offset += 1) {
+      const day = new Date(chartStart);
+      day.setUTCDate(day.getUTCDate() + offset);
+      const key = day.toISOString().slice(0, 10);
+      const dayTransactions = transactions.filter((transaction) => transaction.occurred_at.slice(0, 10) === key);
+      chart.push({
+        date: key,
+        income: dayTransactions.filter((transaction) => transaction.payment_method === 'cash' && transaction.category?.type === 'income').reduce((total, transaction) => total + Number(transaction.amount), 0),
+        expense: dayTransactions.filter((transaction) => transaction.payment_method === 'cash' && transaction.category?.type === 'expense').reduce((total, transaction) => total + Number(transaction.amount), 0),
+      });
     }
-    if (!health.authConfigured) {
-      state.dashboard = null;
-      setConnection(false);
-      showAuthScreen('Tambahkan SUPABASE_ANON_KEY dari project yang sama ke .env untuk login.');
-      return;
-    }
-    const dashboard = await api(`/api/bootstrap?date=${encodeURIComponent(date)}`);
-    state.dashboard = dashboard;
+    state.dashboard = {
+      date,
+      summary: {
+        income,
+        expense,
+        balance: activeShift ? Number(activeShift.opening_cash) + shiftIncome - shiftExpense : 0,
+        count: todayTransactions.length,
+      },
+      transactions: todayTransactions.slice(0, 100),
+      chart,
+      categories,
+      cashiers,
+      activeShift,
+    };
     setConnection(true);
     renderDashboard();
   } catch (error) {
     setConnection(false);
-    if (error.status === 401) {
+    if (error.status === 401 || error.code === 'PGRST301') {
+      await supabaseClient?.auth.signOut();
       showAuthScreen('Sesi login berakhir. Silakan masuk kembali.');
       return;
     }
-    showToast(error.message, true);
+    showToast(supabaseErrorMessage(error), true);
   }
 }
 
@@ -342,7 +416,14 @@ async function saveTransaction(event) {
   submit.disabled = true;
   elements.formError.hidden = true;
   try {
-    await api('/api/transactions', { method: 'POST', body: JSON.stringify(data) });
+    const result = await supabaseClient.from('cash_transactions').insert({
+      shift_id: state.dashboard.activeShift.id,
+      category_id: data.category_id,
+      amount: data.amount,
+      description: String(data.description || '').trim(),
+      payment_method: data.payment_method,
+    });
+    assertSupabaseSuccess(result);
     closeModal();
     showToast('Transaksi berhasil dicatat.');
     await refreshDashboard();
@@ -369,23 +450,24 @@ async function saveShift(event) {
   elements.shiftFormError.hidden = true;
   try {
     if (isClosing) {
-      await api(`/api/shifts/${encodeURIComponent(state.dashboard.activeShift.id)}/close`, {
-        method: 'POST', body: JSON.stringify({ closing_cash: amount }),
-      });
+      const result = await supabaseClient.from('shifts')
+        .update({ closing_cash: amount, closed_at: new Date().toISOString(), status: 'closed' })
+        .eq('id', state.dashboard.activeShift.id).eq('status', 'open').select('id').single();
+      assertSupabaseSuccess(result);
       closeShiftModal();
       showToast('Shift berhasil ditutup.');
     } else {
       const cashierId = formData.get('cashier_id');
       if (!cashierId) throw new Error('Tambahkan kasir aktif melalui backend/schema.sql terlebih dahulu.');
-      await api('/api/shifts', {
-        method: 'POST', body: JSON.stringify({ cashier_id: cashierId, opening_cash: amount }),
-      });
+      const result = await supabaseClient.from('shifts')
+        .insert({ cashier_id: cashierId, opening_cash: amount, status: 'open' }).select('id').single();
+      assertSupabaseSuccess(result);
       closeShiftModal();
       showToast('Shift berhasil dimulai.');
     }
     await refreshDashboard();
   } catch (error) {
-    elements.shiftFormError.textContent = error.message;
+    elements.shiftFormError.textContent = supabaseErrorMessage(error);
     elements.shiftFormError.hidden = false;
   } finally {
     submit.disabled = false;
