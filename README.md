@@ -1,6 +1,6 @@
 # Arus Kas SPBU
 
-Dashboard kas operasional dengan frontend HTML/CSS/JavaScript dan backend Node.js bawaan. Data disimpan di Supabase Postgres. Tidak ada `package.json` atau `env.example`; backend tidak membutuhkan paket npm tambahan.
+Dashboard kas operasional dengan frontend HTML/CSS/JavaScript statis. Frontend terhubung langsung ke Supabase Auth dan Postgres menggunakan publishable key serta RLS, sehingga dapat di-host di GitHub Pages. Tidak ada `package.json` atau `env.example`.
 
 ## Struktur
 
@@ -56,29 +56,38 @@ erDiagram
   }
 ```
 
-## Menjalankan
+## Konfigurasi Supabase
 
-1. Buat project Supabase, lalu jalankan seluruh isi `backend/schema.sql` di **SQL Editor**. SQL tersebut membuat empat tabel inti sekaligus kategori dan satu kasir awal.
-2. Pasang Node.js 18 atau lebih baru.
-3. Isi `backend/.env` dengan URL dan **anon/publishable key** dari project Supabase. Backend juga mendukung `.env` di root; bila kedua file ada, file root yang digunakan.
+1. Jalankan seluruh isi `backend/schema.sql` di Supabase **SQL Editor**. Ini menyiapkan empat tabel dan policy RLS untuk role `authenticated`.
+2. Di awal `frontend/app.js`, ganti placeholder berikut dengan URL dan **publishable key** dari project Supabase:
 
-```dotenv
-SUPABASE_URL=https://PROJECT_REF.supabase.co
-SUPABASE_ANON_KEY=ANON_ATAU_PUBLISHABLE_KEY
-PORT=3000
+```js
+const SUPABASE_URL = 'https://PROJECT_REF.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_...';
 ```
 
-Ambil URL dan anon/publishable key dari **Project Settings → API**. Aplikasi menggunakan sesi akun operator untuk mengakses database melalui RLS, sehingga service role key tidak diperlukan.
+Ambil nilai tersebut dari **Project Settings → API**. Publishable key memang dipakai di browser; RLS membatasi akses data. **Jangan pernah** memasukkan service role/secret key ke frontend.
 
-4. Dari terminal di folder project, jalankan server:
+3. Tambahkan akun operator di **Authentication → Users → Add user**. Konfirmasi email jika project mewajibkannya.
+
+## GitHub Pages
+
+1. Push repository tanpa file `.env`.
+2. Buka repository **Settings → Pages**.
+3. Pilih **Deploy from a branch**, branch `main`, lalu folder `/frontend` sebagai sumber.
+4. Tambahkan URL situs GitHub Pages pada **Supabase → Authentication → URL Configuration → Redirect URLs** bila diperlukan untuk alur Auth project.
+
+Setelah publish key diisi dan RLS SQL dijalankan ulang, buka URL Pages untuk login. GitHub Pages dapat melayani frontend statis, tetapi tidak menjalankan `backend/app.js`.
+
+## Lokal
+
+Untuk menguji dengan server statis bawaan Node:
 
 ```powershell
 node backend/app.js
 ```
 
-5. Buka `http://localhost:3000`. Jika server sudah berjalan sebelum `.env` diisi, hentikan dan jalankan ulang agar konfigurasi baru dimuat.
-
-Tambahkan akun operator melalui **Authentication → Users → Add user** di Supabase, lalu masuk dengan email dan password akun tersebut. Aplikasi tidak menyediakan pendaftaran publik. Jalankan ulang `backend/schema.sql` setelah perubahan kebijakan RLS ini supaya pengguna `authenticated` mendapat hak akses yang diperlukan. Sesi aplikasi memakai cookie HttpOnly; endpoint data menolak permintaan tanpa sesi. `.env` sudah masuk `.gitignore`.
+Buka `http://localhost:3000`. Operasi frontend menggunakan Supabase langsung; server lokal hanya menyajikan file statis.
 
 ## Fitur
 
@@ -88,4 +97,4 @@ Tambahkan akun operator melalui **Authentication → Users → Add user** di Sup
 - Pembukaan dan penutupan shift serta pencatatan saldo kas fisik saat tutup.
 - Pencarian dan filter transaksi.
 
-Hari operasional dan agregasi grafik menggunakan tanggal UTC. Backend berjalan dengan modul bawaan Node.js (`http`, `fs`, dan `fetch`) sehingga tidak perlu instalasi dependensi.
+Hari operasional dan agregasi grafik menggunakan tanggal UTC. Library Supabase JS v2 dimuat dari jsDelivr CDN.
