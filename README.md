@@ -74,7 +74,7 @@ Ambil nilai tersebut dari **Project Settings → API**. Publishable key memang d
 
 1. Push repository tanpa file `.env`.
 2. Buka repository **Settings → Pages**.
-3. Pilih **Deploy from a branch**, branch `main`, lalu folder `/frontend` sebagai sumber.
+3. Pilih **Deploy from a branch**, branch `main`, dan folder `/(root)` sebagai sumber. `index.html` di root akan mengarahkan pengunjung ke `frontend/`.
 4. Tambahkan URL situs GitHub Pages pada **Supabase → Authentication → URL Configuration → Redirect URLs** bila diperlukan untuk alur Auth project.
 
 Setelah publish key diisi dan RLS SQL dijalankan ulang, buka URL Pages untuk login. GitHub Pages dapat melayani frontend statis, tetapi tidak menjalankan `backend/app.js`.
