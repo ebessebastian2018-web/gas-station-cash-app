@@ -126,7 +126,7 @@
 
           <div class="setup-notice" id="setupNotice" hidden>
             <i data-lucide="triangle-alert"></i>
-            <div><strong>Supabase belum terhubung</strong><p>Periksa konfigurasi Supabase backend lokal atau koneksi Supabase frontend.</p></div>
+            <div><strong>Supabase belum terhubung</strong><p>Periksa koneksi internet, URL project, dan publishable key Supabase.</p></div>
             <button class="icon-button notice-dismiss" id="dismissNotice" type="button" aria-label="Tutup pemberitahuan"><i data-lucide="x"></i></button>
           </div>
 
@@ -211,7 +211,17 @@
           <label class="field-label" for="amountInput">Jumlah</label><div class="amount-input-wrap"><span>Rp</span><input class="form-control amount-input" id="amountInput" name="amount" type="number" min="1" step="1" placeholder="0" required /></div>
           <label class="field-label" for="descriptionInput">Keterangan <span>(opsional)</span></label><input class="form-control" id="descriptionInput" name="description" maxlength="160" placeholder="Contoh: Penjualan shift pagi" />
           <label class="field-label" for="paymentInput">Metode pembayaran</label><select class="form-control" id="paymentInput" name="payment_method"><option value="cash">Tunai</option><option value="transfer">Transfer</option><option value="card">Kartu / QRIS</option></select>
-          <div id="receiptField" hidden><label class="field-label" for="receiptTextInput">Rincian struk pembayaran <span>(opsional)</span></label><textarea class="form-control receipt-textarea" id="receiptTextInput" name="receipt_text" maxlength="2000" rows="4" placeholder="Contoh: Pembelian bensin Pertalite 20 liter, total Rp260.000"></textarea><p class="field-hint">Tuliskan rincian barang, jumlah, atau nomor struk (maksimal 2.000 karakter).</p></div>
+          <div class="receipt-upload-field" id="receiptImageField" hidden>
+            <span class="field-label">Foto struk penjualan <span>(opsional)</span></span>
+            <label class="receipt-upload" for="receiptImageInput">
+              <span class="receipt-upload-icon"><i data-lucide="upload"></i></span>
+              <span class="receipt-upload-copy"><strong id="receiptUploadTitle">Pilih foto struk</strong><small id="receiptUploadHint">JPG atau PNG, maksimal 5 MB</small></span>
+              <span class="receipt-upload-action">Pilih file</span>
+              <input id="receiptImageInput" name="receipt_image" type="file" accept="image/jpeg,image/png" />
+            </label>
+            <div class="receipt-preview" id="receiptPreview" hidden><img id="receiptPreviewImage" alt="Pratinjau foto struk" /><button class="receipt-remove" id="removeReceiptImage" type="button"><i data-lucide="x"></i><span>Hapus foto</span></button></div>
+          </div>
+          <div id="receiptField" hidden><label class="field-label" for="receiptTextInput">Rincian struk pengeluaran <span>(opsional)</span></label><textarea class="form-control receipt-textarea" id="receiptTextInput" name="receipt_text" maxlength="2000" rows="4" placeholder="Tambahkan keterangan struk pengeluaran"></textarea><p class="field-hint">Tuliskan catatan tambahan (maksimal 2.000 karakter).</p></div>
           <p class="form-error" id="formError" role="alert" hidden></p>
           <div class="modal-actions"><button class="button button-secondary" type="button" data-close-modal>Batal</button><button class="button button-primary" type="submit" id="submitTransaction"><i data-lucide="check"></i>Simpan transaksi</button></div>
         </form>
@@ -221,7 +231,9 @@
     <div class="modal-backdrop" id="receiptModal" hidden>
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="receiptTitle">
         <div class="modal-heading"><div><p class="eyebrow"><span class="eyebrow-line"></span>RINCIAN PEMBAYARAN</p><h2 id="receiptTitle">Struk transaksi</h2></div><button class="icon-button" type="button" data-close-receipt-modal aria-label="Tutup"><i data-lucide="x"></i></button></div>
-        <p class="receipt-content" id="receiptContent"></p>
+        <p class="receipt-content" id="receiptContent" hidden></p>
+        <img class="receipt-image" id="receiptImage" alt="Foto struk transaksi" hidden />
+        <a class="receipt-open-link" id="receiptOpenLink" href="#" target="_blank" rel="noreferrer" hidden><i data-lucide="external-link"></i>Buka foto di tab baru</a>
         <div class="modal-actions"><button class="button button-secondary" type="button" data-close-receipt-modal>Tutup</button></div>
       </section>
     </div>

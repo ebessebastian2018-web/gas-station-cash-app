@@ -36,6 +36,8 @@ Halaman [`index.html`](index.html) di root mengarahkan pengunjung GitHub Pages b
 3. Buat akun operator melalui **Authentication → Users → Add user**. Konfirmasi email jika diminta.
 4. Pastikan URL dan publishable key di awal [`frontend/app.js`](frontend/app.js) mengarah ke project tersebut. Publishable key boleh digunakan di frontend; jangan pernah menggunakan service-role/secret key.
 
+Schema membuat tabel operasional, bucket privat `cash-receipts` (maksimal 5 MB per gambar JPG/PNG), serta policy akses untuk operator terautentikasi. Jalankan ulang schema pada project lama untuk menambahkan dukungan foto struk.
+
 ## Menjalankan lokal
 
 Buka `frontend/index.html` dengan VS Code Live Server (atau server file statis lainnya), lalu masuk menggunakan akun operator Supabase. Aplikasi lokal akan menggunakan database Supabase yang sama dengan situs online.
@@ -56,6 +58,7 @@ Jika login ditolak karena URL redirect, tambahkan URL GitHub Pages atau URL loka
 - Grafik arus kas 7 atau 14 hari terakhir.
 - Pencatatan transaksi tunai, transfer, atau kartu/QRIS.
 - Catatan teks struk pembayaran pada transaksi pengeluaran.
+- Upload dan pratinjau foto struk penjualan (JPG/PNG, maksimal 5 MB).
 - Pembukaan dan penutupan shift kasir.
 - Pencarian dan filter transaksi.
 - Login operator dan penyimpanan data menggunakan Supabase.

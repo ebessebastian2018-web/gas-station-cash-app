@@ -38,11 +38,13 @@ create table if not exists public.cash_transactions (
   description text not null default '',
   payment_method text not null default 'cash' check (payment_method in ('cash', 'transfer', 'card')),
   receipt_text text,
+  receipt_path text,
   occurred_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
 
 alter table public.cash_transactions add column if not exists receipt_text text;
+alter table public.cash_transactions add column if not exists receipt_path text;
 
 create index if not exists shifts_cashier_opened_idx on public.shifts (cashier_id, opened_at desc);
 create unique index if not exists shifts_one_open_at_a_time_idx on public.shifts (status) where status = 'open';
@@ -92,6 +94,20 @@ create policy transactions_authenticated_insert on public.cash_transactions
 drop policy if exists cash_receipts_authenticated_read on storage.objects;
 drop policy if exists cash_receipts_authenticated_insert on storage.objects;
 drop policy if exists cash_receipts_authenticated_delete on storage.objects;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('cash-receipts', 'cash-receipts', false, 5242880, array['image/jpeg', 'image/png'])
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+create policy cash_receipts_authenticated_read on storage.objects
+  for select to authenticated using (bucket_id = 'cash-receipts');
+create policy cash_receipts_authenticated_insert on storage.objects
+  for insert to authenticated with check (bucket_id = 'cash-receipts');
+create policy cash_receipts_authenticated_delete on storage.objects
+  for delete to authenticated using (bucket_id = 'cash-receipts');
 
 insert into public.cashiers (full_name)
 select 'Kasir Utama'
