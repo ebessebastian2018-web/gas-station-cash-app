@@ -160,7 +160,7 @@ async function getBootstrap(dateString, accessToken) {
   const { start, end } = isoDayBounds(dateString);
   const [transactions, categories, cashiers, openShifts] = await Promise.all([
     supabaseRequest('cash_transactions', {
-      select: 'id,shift_id,amount,description,payment_method,occurred_at,category:transaction_categories(id,name,type),shift:shifts(id,cashier:cashiers(full_name))',
+      select: 'id,shift_id,amount,description,payment_method,receipt_text,occurred_at,category:transaction_categories(id,name,type),shift:shifts(id,cashier:cashiers(full_name))',
       occurred_at: `gte.${start}`,
       and: `(occurred_at.lte.${end})`,
       order: 'occurred_at.desc',
@@ -304,6 +304,10 @@ async function handleApi(request, response, url) {
     if (!['income', 'expense'].includes(body.type) || !body.category_id || !paymentMethods.includes(body.payment_method)) {
       return sendJson(response, 400, { error: 'Jenis, kategori, atau metode pembayaran tidak valid.' });
     }
+    const receiptText = String(body.receipt_text || '').trim();
+    if (receiptText.length > 2000) {
+      return sendJson(response, 400, { error: 'Rincian struk maksimal 2.000 karakter.' });
+    }
     const shift = await findOpenShift(session.accessToken);
     if (!shift) return sendJson(response, 409, { error: 'Mulai shift kasir sebelum mencatat transaksi.' });
     const categories = await supabaseRequest('transaction_categories', {
@@ -324,6 +328,7 @@ async function handleApi(request, response, url) {
         amount,
         description,
         payment_method: body.payment_method,
+        receipt_text: body.type === 'expense' && receiptText ? receiptText : null,
       },
       accessToken: session.accessToken,
     });

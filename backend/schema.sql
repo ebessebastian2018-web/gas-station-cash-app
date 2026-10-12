@@ -1,4 +1,4 @@
--- Arus Kas SPBU: empat entitas inti untuk kasir, shift, kategori, dan transaksi.
+-- Arus Kas SPBU: kasir, shift, kategori, dan transaksi kas.
 
 create table if not exists public.cashiers (
   id uuid primary key default gen_random_uuid(),
@@ -37,9 +37,12 @@ create table if not exists public.cash_transactions (
   amount numeric(14, 2) not null check (amount > 0),
   description text not null default '',
   payment_method text not null default 'cash' check (payment_method in ('cash', 'transfer', 'card')),
+  receipt_text text,
   occurred_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
+
+alter table public.cash_transactions add column if not exists receipt_text text;
 
 create index if not exists shifts_cashier_opened_idx on public.shifts (cashier_id, opened_at desc);
 create unique index if not exists shifts_one_open_at_a_time_idx on public.shifts (status) where status = 'open';
@@ -85,6 +88,10 @@ create policy transactions_authenticated_read on public.cash_transactions
 drop policy if exists transactions_authenticated_insert on public.cash_transactions;
 create policy transactions_authenticated_insert on public.cash_transactions
   for insert to authenticated with check (true);
+
+drop policy if exists cash_receipts_authenticated_read on storage.objects;
+drop policy if exists cash_receipts_authenticated_insert on storage.objects;
+drop policy if exists cash_receipts_authenticated_delete on storage.objects;
 
 insert into public.cashiers (full_name)
 select 'Kasir Utama'

@@ -40,6 +40,8 @@ const elements = {
   modal: document.getElementById('transactionModal'),
   form: document.getElementById('transactionForm'),
   formError: document.getElementById('formError'),
+  receiptModal: document.getElementById('receiptModal'),
+  receiptContent: document.getElementById('receiptContent'),
   shiftModal: document.getElementById('shiftModal'),
   shiftForm: document.getElementById('shiftForm'),
   shiftFormError: document.getElementById('shiftFormError'),
@@ -68,6 +70,7 @@ function escapeHtml(value) {
 function supabaseErrorMessage(error) {
   const message = String(error?.message || 'Permintaan ke Supabase gagal.');
   if (message.toLowerCase().includes('failed to fetch')) return 'Tidak dapat menghubungi Supabase. Periksa URL, publishable key, dan koneksi internet.';
+  if (message.includes('receipt_text') || error?.code === '42703') return 'Kolom teks struk belum tersedia. Jalankan ulang backend/schema.sql di Supabase SQL Editor.';
   if (error?.code === '42501' || message.toLowerCase().includes('row-level security')) {
     return 'Akses data ditolak oleh RLS. Jalankan ulang backend/schema.sql di Supabase SQL Editor.';
   }
@@ -232,6 +235,7 @@ function renderCategories() {
   const matching = categories.filter((category) => category.type === state.type);
   elements.categories.innerHTML = '<option value="">Pilih kategori</option>' + matching
     .map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`).join('');
+  document.getElementById('receiptField').hidden = state.type !== 'expense';
 }
 
 function renderSummary() {
@@ -292,7 +296,10 @@ function transactionMarkup(transaction) {
   const date = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(new Date(transaction.occurred_at));
   const methods = { cash: ['banknote', 'Tunai'], transfer: ['landmark', 'Transfer'], card: ['contactless', 'Kartu / QRIS'] };
   const [icon, method] = methods[transaction.payment_method] || methods.cash;
-  return `<tr><td><div class="transaction-name"><span class="transaction-icon ${kind}"><i data-lucide="${icon}"></i></span><span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(transaction.shift?.cashier?.full_name || 'Kasir')} · ${date}</small></span></div></td><td><span class="category-tag ${kind}">${escapeHtml(category)}</span></td><td>${time}</td><td><span class="method-label"><i data-lucide="${icon}"></i>${method}</span></td><td class="amount-cell ${kind}">${isIncome ? '+' : '−'}${escapeHtml(rupiah.format(transaction.amount))}</td></tr>`;
+  const receipt = transaction.receipt_text
+    ? `<button class="receipt-link" type="button" data-receipt-id="${escapeHtml(transaction.id)}"><i data-lucide="file-text"></i><span>Lihat struk</span></button>`
+    : '<span class="receipt-missing">—</span>';
+  return `<tr><td><div class="transaction-name"><span class="transaction-icon ${kind}"><i data-lucide="${icon}"></i></span><span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(transaction.shift?.cashier?.full_name || 'Kasir')} · ${date}</small></span></div></td><td><span class="category-tag ${kind}">${escapeHtml(category)}</span></td><td>${time}</td><td><span class="method-label"><i data-lucide="${icon}"></i>${method}</span></td><td>${receipt}</td><td class="amount-cell ${kind}">${isIncome ? '+' : '−'}${escapeHtml(rupiah.format(transaction.amount))}</td></tr>`;
 }
 
 function renderTransactions() {
@@ -305,7 +312,7 @@ function renderTransactions() {
   const shown = state.expanded ? filtered : filtered.slice(0, 5);
   elements.rows.innerHTML = shown.length
     ? shown.map(transactionMarkup).join('')
-    : '<tr class="empty-row"><td colspan="5"><span class="empty-icon"><i data-lucide="receipt"></i></span><strong>Belum ada transaksi</strong><span>Transaksi yang cocok akan muncul di sini.</span></td></tr>';
+    : '<tr class="empty-row"><td colspan="6"><span class="empty-icon"><i data-lucide="receipt"></i></span><strong>Belum ada transaksi</strong><span>Transaksi yang cocok akan muncul di sini.</span></td></tr>';
   elements.tableSummary.textContent = `Menampilkan ${shown.length} dari ${filtered.length} transaksi`;
   document.getElementById('viewAllButton').innerHTML = state.expanded
     ? 'Tampilkan lebih sedikit <i data-lucide="arrow-up"></i>'
@@ -342,7 +349,7 @@ async function refreshDashboard() {
     rangeStart.setUTCDate(rangeStart.getUTCDate() - 13);
     const [transactionsResult, categoriesResult, cashiersResult, shiftsResult] = await Promise.all([
       supabaseClient.from('cash_transactions')
-        .select('id,shift_id,amount,description,payment_method,occurred_at,category:transaction_categories(id,name,type),shift:shifts(id,cashier:cashiers(full_name))')
+        .select('id,shift_id,amount,description,payment_method,receipt_text,occurred_at,category:transaction_categories(id,name,type),shift:shifts(id,cashier:cashiers(full_name))')
         .gte('occurred_at', rangeStart.toISOString())
         .lte('occurred_at', rangeEnd.toISOString())
         .order('occurred_at', { ascending: false })
@@ -356,11 +363,11 @@ async function refreshDashboard() {
         .eq('status', 'open').order('opened_at', { ascending: false }).limit(1),
     ]);
     const transactions = assertSupabaseSuccess(transactionsResult) || [];
+    const todayTransactions = transactions.filter((transaction) => transaction.occurred_at.slice(0, 10) === date);
     const categories = assertSupabaseSuccess(categoriesResult) || [];
     const cashiers = assertSupabaseSuccess(cashiersResult) || [];
     const openShifts = assertSupabaseSuccess(shiftsResult) || [];
     const activeShift = openShifts[0] || null;
-    const todayTransactions = transactions.filter((transaction) => transaction.occurred_at.slice(0, 10) === date);
     const shiftTransactionsResult = activeShift
       ? await supabaseClient.from('cash_transactions')
         .select('amount,payment_method,category:transaction_categories(type)')
@@ -481,21 +488,19 @@ async function saveTransaction(event) {
   submit.disabled = true;
   elements.formError.hidden = true;
   try {
+    data.description = String(data.description || '').trim();
+    data.receipt_text = state.type === 'expense' ? String(data.receipt_text || '').trim() : '';
+    if (data.receipt_text.length > 2000) throw new Error('Rincian struk maksimal 2.000 karakter.');
     if (usesBackendApi) {
-      await backendRequest('/api/transactions', {
-        method: 'POST',
-        body: {
-          ...data,
-          description: String(data.description || '').trim(),
-        },
-      });
+      await backendRequest('/api/transactions', { method: 'POST', body: data });
     } else {
       const result = await supabaseClient.from('cash_transactions').insert({
         shift_id: state.dashboard.activeShift.id,
         category_id: data.category_id,
         amount: data.amount,
-        description: String(data.description || '').trim(),
+        description: data.description,
         payment_method: data.payment_method,
+        receipt_text: data.receipt_text || null,
       });
       assertSupabaseSuccess(result);
     }
@@ -581,10 +586,15 @@ document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   if (!elements.modal.hidden) closeModal();
   if (!elements.shiftModal.hidden) closeShiftModal();
+  if (!elements.receiptModal.hidden) {
+    elements.receiptModal.hidden = true;
+    document.body.classList.remove('modal-open');
+  }
 });
 document.querySelectorAll('.type-option').forEach((button) => button.addEventListener('click', () => {
   state.type = button.dataset.type;
   document.querySelectorAll('.type-option').forEach((option) => option.classList.toggle('selected', option === button));
+  if (state.type !== 'expense') document.getElementById('receiptTextInput').value = '';
   renderCategories();
 }));
 document.getElementById('transactionSearch').addEventListener('input', (event) => {
@@ -600,6 +610,21 @@ document.getElementById('typeFilter').addEventListener('change', (event) => {
 document.getElementById('viewAllButton').addEventListener('click', () => {
   state.expanded = !state.expanded;
   renderTransactions();
+});
+elements.rows.addEventListener('click', (event) => {
+  const receiptButton = event.target.closest('[data-receipt-id]');
+  if (!receiptButton) return;
+  const transaction = state.dashboard?.transactions.find((item) => item.id === receiptButton.dataset.receiptId);
+  if (!transaction?.receipt_text) return;
+  elements.receiptContent.textContent = transaction.receipt_text;
+  elements.receiptModal.hidden = false;
+  document.body.classList.add('modal-open');
+});
+elements.receiptModal.addEventListener('click', (event) => {
+  if (event.target === elements.receiptModal || event.target.closest('[data-close-receipt-modal]')) {
+    elements.receiptModal.hidden = true;
+    document.body.classList.remove('modal-open');
+  }
 });
 elements.chartRange.addEventListener('change', (event) => {
   state.chartDays = Number(event.target.value);

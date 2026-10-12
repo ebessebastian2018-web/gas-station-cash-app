@@ -9,6 +9,7 @@ Dashboard berbasis web untuk mencatat transaksi dan memantau kas operasional SPB
 - Ringkasan pemasukan, pengeluaran, saldo shift, dan jumlah transaksi.
 - Grafik arus kas untuk 7 atau 14 hari terakhir.
 - Pencatatan transaksi tunai, transfer, atau kartu/QRIS.
+- Catatan teks struk pembayaran pada transaksi pengeluaran.
 - Pembukaan dan penutupan shift kasir.
 - Pencarian dan filter transaksi.
 - Login operator dan penyimpanan data menggunakan Supabase.
@@ -38,7 +39,7 @@ Frontend adalah halaman aplikasi. Backend Node.js menyajikan frontend sekaligus 
 ### Persiapan Supabase
 
 1. Buat atau pilih project Supabase.
-2. Buka **SQL Editor**, lalu jalankan seluruh isi [`backend/schema.sql`](backend/schema.sql) untuk membuat tabel, policy akses, dan kategori awal.
+2. Buka **SQL Editor**, lalu jalankan seluruh isi [`backend/schema.sql`](backend/schema.sql) untuk membuat tabel, policy akses, serta kategori awal.
 3. Buat akun operator melalui **Authentication → Users → Add user**. Konfirmasi email jika diminta.
 
 ### Jalankan frontend dan backend
@@ -63,6 +64,8 @@ Pastikan Node.js 18 atau lebih baru sudah terpasang. Dari folder repository:
 4. Buka [http://localhost:3000](http://localhost:3000), lalu masuk dengan akun operator Supabase.
 
 Tidak ada paket npm tambahan yang perlu diinstal. Backend dan frontend lokal dilayani dari origin yang sama.
+
+Saat mencatat pengeluaran, rincian struk dapat ditulis langsung (maksimal 2.000 karakter). Klik **Lihat struk** pada daftar transaksi untuk membaca teksnya. Jalankan ulang [`backend/schema.sql`](backend/schema.sql) pada project yang sudah ada agar kolom `receipt_text` tersedia.
 
 > Jangan unggah `backend/.env` ke GitHub. File tersebut diabaikan oleh `.gitignore`. Gunakan hanya anon/publishable key; jangan pernah memasukkan service-role/secret key ke frontend.
 
