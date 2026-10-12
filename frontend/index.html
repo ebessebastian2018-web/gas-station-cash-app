@@ -16,34 +16,76 @@
   </head>
   <body>
     <main class="auth-screen" id="authScreen">
-      <section class="auth-showcase" aria-labelledby="welcomeTitle">
+      <section class="auth-showcase auth-illustration-panel" aria-label="Ilustrasi pom bensin Bas Station">
         <a class="brand auth-brand" href="#" aria-label="Bas Station">
           <span class="brand-mark"><i data-lucide="fuel"></i></span>
           <span class="brand-copy"><strong>Bas <span>Station</span></strong><small>MANAJEMEN OPERASIONAL SPBU</small></span>
         </a>
-        <div class="auth-intro">
-          <p class="eyebrow"><span class="eyebrow-line"></span>RUANG KENDALI SPBU ANDA</p>
-          <h2 id="welcomeTitle">Operasional lebih rapi.<br /><span>Bisnis terus melaju.</span></h2>
-          <p class="auth-intro-copy">Satu tempat untuk memantau transaksi, mengelola shift kasir, dan memahami arus kas stasiun Anda.</p>
-          <div class="auth-feature-list">
-            <span><i data-lucide="wallet-cards"></i>Catatan kas terpusat</span>
-            <span><i data-lucide="users-round"></i>Shift kasir terpantau</span>
-            <span><i data-lucide="chart-no-axes-combined"></i>Laporan mudah dipahami</span>
-          </div>
+        <div class="station-illustration">
+          <span class="illustration-orbit orbit-one"></span>
+          <span class="illustration-orbit orbit-two"></span>
+          <svg viewBox="0 0 720 430" role="img" aria-labelledby="stationIllustrationTitle stationIllustrationDescription">
+            <title id="stationIllustrationTitle">Pom bensin Bas Station</title>
+            <desc id="stationIllustrationDescription">Ilustrasi pom bensin merah dan kuning dengan dispenser yang menyala.</desc>
+            <defs>
+              <linearGradient id="illustrationSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff9e9" /><stop offset="1" stop-color="#ffe8c4" /></linearGradient>
+              <linearGradient id="illustrationCanopy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e93842" /><stop offset="1" stop-color="#9f1728" /></linearGradient>
+              <linearGradient id="illustrationGlass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#263b45" /><stop offset="1" stop-color="#16252f" /></linearGradient>
+              <filter id="illustrationShadow" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="14" /></filter>
+            </defs>
+            <ellipse cx="360" cy="374" rx="272" ry="24" fill="#7e2730" opacity=".16" filter="url(#illustrationShadow)" />
+            <circle cx="573" cy="93" r="39" fill="#ffd15c" opacity=".42" />
+            <circle cx="573" cy="93" r="23" fill="#ffd15c" />
+            <path d="M67 320h585v53H67z" fill="#f4d7ac" />
+            <path d="M67 320h585v8H67z" fill="#e6c39b" />
+            <path d="M113 291h486v29H113z" fill="#26333a" />
+            <path d="M145 291h72v6h-72zm356 0h72v6h-72z" fill="#ffd15c" opacity=".9" />
+            <path d="M179 222h362v69H179z" fill="url(#illustrationGlass)" />
+            <path d="M198 242h105v49H198z" fill="#324e58" />
+            <path d="M314 242h105v49H314z" fill="#324e58" />
+            <path d="M430 242h91v49h-91z" fill="#324e58" />
+            <path d="M198 242h105v4H198zm116 0h105v4H314zm116 0h91v4h-91z" fill="#f6ba42" opacity=".72" />
+            <path d="M168 215h387l-29-44H197z" fill="url(#illustrationCanopy)" />
+            <path d="M191 170h340v12H191z" fill="#ffd15c" />
+            <path d="M211 186h301l-7 12H218z" fill="#fff2d7" opacity=".95" />
+            <path d="M241 202h8v89h-8zm223 0h8v89h-8z" fill="#f8eee0" />
+            <rect x="337" y="193" width="87" height="24" rx="12" fill="#fff8eb" />
+            <text x="380" y="209" text-anchor="middle" fill="#b01e2d" font-family="DM Sans, sans-serif" font-size="12" font-weight="700" letter-spacing="1">BAS STATION</text>
+            <g class="pump pump-left">
+              <rect x="116" y="245" width="49" height="75" rx="9" fill="#fffdf8" />
+              <rect x="122" y="254" width="37" height="29" rx="4" fill="#25343b" />
+              <rect x="127" y="259" width="27" height="19" rx="3" fill="#ffd15c" />
+              <path d="M129 269h15" stroke="#9d1d2b" stroke-width="3" stroke-linecap="round" />
+              <rect x="124" y="290" width="33" height="5" rx="2.5" fill="#e9e1d5" />
+              <path d="M160 264c21 0 15 27 15 37 0 9 8 10 10 3" fill="none" stroke="#38454b" stroke-width="4" stroke-linecap="round" />
+              <path d="M183 301l-1 10 9-4-2-8" fill="#e8323e" />
+            </g>
+            <g class="pump pump-right">
+              <rect x="556" y="245" width="49" height="75" rx="9" fill="#fffdf8" />
+              <rect x="562" y="254" width="37" height="29" rx="4" fill="#25343b" />
+              <rect x="567" y="259" width="27" height="19" rx="3" fill="#ffd15c" />
+              <path d="M569 269h15" stroke="#9d1d2b" stroke-width="3" stroke-linecap="round" />
+              <rect x="564" y="290" width="33" height="5" rx="2.5" fill="#e9e1d5" />
+              <path d="M560 264c-21 0-15 27-15 37 0 9-8 10-10 3" fill="none" stroke="#38454b" stroke-width="4" stroke-linecap="round" />
+              <path d="M537 301l1 10-9-4 2-8" fill="#e8323e" />
+            </g>
+            <g class="illustration-car">
+              <path d="M258 333h220l-14-31c-4-8-10-12-19-12H312c-9 0-15 4-20 12z" fill="#e32b39" />
+              <path d="M303 299h61v26h-80zm72 0h61l12 26h-73z" fill="#d9eef0" />
+              <path d="M249 328h239c10 0 17 7 17 16v11H232v-12c0-8 7-15 17-15z" fill="#b91e2c" />
+              <path d="M242 340h13m216 0h13" stroke="#ffd15c" stroke-width="5" stroke-linecap="round" />
+              <circle cx="280" cy="354" r="17" fill="#263238" /><circle cx="280" cy="354" r="7" fill="#d9d4ca" />
+              <circle cx="454" cy="354" r="17" fill="#263238" /><circle cx="454" cy="354" r="7" fill="#d9d4ca" />
+            </g>
+            <g class="fuel-spark" fill="#f2ae18">
+              <path d="M91 159l6 14 14 6-14 6-6 14-6-14-14-6 14-6z" />
+              <path d="M623 218l4 9 9 4-9 4-4 9-4-9-9-4 9-4z" />
+              <circle cx="129" cy="121" r="4" /><circle cx="617" cy="145" r="5" />
+            </g>
+          </svg>
+          <div class="illustration-caption"><span class="illustration-status-dot"></span><span>Siap melayani, setiap hari</span></div>
         </div>
-        <div class="auth-photo-grid" aria-label="Foto suasana stasiun pengisian bahan bakar">
-          <figure class="auth-photo-main">
-            <img src="images/station-main.jpg" alt="Area pom bensin modern dengan beberapa dispenser bahan bakar" fetchpriority="high" />
-            <figcaption><span class="photo-live-dot"></span>Lebih dekat dengan operasional harian</figcaption>
-          </figure>
-          <figure class="auth-photo-side auth-photo-sunset">
-            <img src="images/station-sunset.jpg" alt="Dispenser pom bensin saat matahari terbenam" />
-          </figure>
-          <figure class="auth-photo-side auth-photo-night">
-            <img src="images/station-night.jpg" alt="Stasiun pengisian yang terang pada malam hari" />
-          </figure>
-        </div>
-        <p class="photo-credit">Foto oleh <a href="https://www.pexels.com/@ddlogg-2150483267/" target="_blank" rel="noreferrer">ddlogg</a>, <a href="https://www.pexels.com/@thekameragrapher/" target="_blank" rel="noreferrer">Ritesh Singh</a>, dan <a href="https://www.pexels.com/photo/illuminated-gas-station-at-night-in-malaga-32860475/" target="_blank" rel="noreferrer">alienganímedes</a> di Pexels</p>
+        <div class="auth-visual-copy"><span>RUANG KENDALI SPBU ANDA</span><strong>Operasional lancar.<br />Bisnis terus melaju.</strong></div>
       </section>
 
       <section class="auth-card" aria-labelledby="authTitle">
@@ -112,6 +154,30 @@
         </header>
 
         <div class="page-wrap">
+          <section class="summary-hero" aria-labelledby="summaryHeroTitle">
+            <div class="summary-hero-copy">
+              <span class="summary-hero-eyebrow"><span></span>RUANG KENDALI SPBU ANDA</span>
+              <h2 id="summaryHeroTitle">Operasional lebih rapi.<br /><span>Bisnis terus melaju.</span></h2>
+              <p>Satu tempat untuk memantau transaksi, mengelola shift kasir, dan memahami arus kas stasiun Anda.</p>
+              <div class="summary-feature-list">
+                <span><i data-lucide="wallet-cards"></i>Catatan kas terpusat</span>
+                <span><i data-lucide="users-round"></i>Shift kasir terpantau</span>
+                <span><i data-lucide="chart-no-axes-combined"></i>Laporan mudah dipahami</span>
+              </div>
+            </div>
+            <div class="summary-hero-gallery">
+              <div class="auth-photo-grid" aria-label="Foto suasana stasiun pengisian bahan bakar">
+                <figure class="auth-photo-main">
+                  <img src="images/station-main.jpg" alt="Area pom bensin modern dengan beberapa dispenser bahan bakar" />
+                  <figcaption><span class="photo-live-dot"></span>Lebih dekat dengan operasional harian</figcaption>
+                </figure>
+                <figure class="auth-photo-side auth-photo-sunset"><img src="images/station-sunset.jpg" alt="Dispenser pom bensin saat matahari terbenam" loading="lazy" /></figure>
+                <figure class="auth-photo-side auth-photo-night"><img src="images/station-night.jpg" alt="Stasiun pengisian yang terang pada malam hari" loading="lazy" /></figure>
+              </div>
+              <p class="photo-credit">Foto oleh <a href="https://www.pexels.com/@ddlogg-2150483267/" target="_blank" rel="noreferrer">ddlogg</a>, <a href="https://www.pexels.com/@thekameragrapher/" target="_blank" rel="noreferrer">Ritesh Singh</a>, dan <a href="https://www.pexels.com/photo/illuminated-gas-station-at-night-in-malaga-32860475/" target="_blank" rel="noreferrer">alienganímedes</a> di Pexels</p>
+            </div>
+            <span class="summary-hero-glow"></span>
+          </section>
           <section class="welcome-row">
             <div>
               <p class="eyebrow"><span class="eyebrow-line"></span>RUANG KENDALI BAS STATION</p>

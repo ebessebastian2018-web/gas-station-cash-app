@@ -61,7 +61,8 @@ Jika login ditolak karena URL redirect, tambahkan URL GitHub Pages atau URL loka
 - Pembukaan dan penutupan shift kasir.
 - Pencarian dan filter transaksi.
 - Login operator dan penyimpanan data menggunakan Supabase.
-- Beranda pengantar Bas Station dengan foto suasana pom bensin.
+- Ringkasan dengan pengantar Bas Station dan galeri foto suasana pom bensin.
+- Halaman masuk dengan ilustrasi pom bensin animasi.
 
 Foto beranda dari [Pexels](https://www.pexels.com/license/), dengan kredit pada halaman login.
 
