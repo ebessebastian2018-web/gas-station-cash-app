@@ -1,100 +1,90 @@
-# Arus Kas SPBU
+# Aplikasi Kas Operasional SPBU
 
-Dashboard kas operasional dengan frontend HTML/CSS/JavaScript statis. Frontend terhubung langsung ke Supabase Auth dan Postgres menggunakan publishable key serta RLS, sehingga dapat di-host di GitHub Pages. Tidak ada `package.json` atau `env.example`.
+Dashboard berbasis web untuk mencatat transaksi dan memantau kas operasional SPBU. Repository ini memisahkan frontend dan backend agar bisa dicoba secara lokal, sementara versi frontend statis dapat dibuka melalui GitHub Pages.
 
-## Struktur
-
-```text
-frontend/
-  index.html
-  styles.css
-  app.js
-backend/
-  app.js
-  schema.sql
-.gitignore
-README.md
-```
-
-## ERD
-
-```mermaid
-erDiagram
-  CASHIERS ||--o{ SHIFTS : menjalankan
-  SHIFTS ||--o{ CASH_TRANSACTIONS : mencatat
-  TRANSACTION_CATEGORIES ||--o{ CASH_TRANSACTIONS : mengelompokkan
-
-  CASHIERS {
-    uuid id PK
-    text full_name
-    boolean active
-    timestamptz created_at
-  }
-  SHIFTS {
-    uuid id PK
-    uuid cashier_id FK
-    timestamptz opened_at
-    timestamptz closed_at
-    numeric opening_cash
-    numeric closing_cash
-    text status
-  }
-  TRANSACTION_CATEGORIES {
-    uuid id PK
-    text name
-    text type
-    boolean active
-  }
-  CASH_TRANSACTIONS {
-    uuid id PK
-    uuid shift_id FK
-    uuid category_id FK
-    numeric amount
-    text description
-    text payment_method
-    timestamptz occurred_at
-  }
-```
-
-## Konfigurasi Supabase
-
-1. Jalankan seluruh isi `backend/schema.sql` di Supabase **SQL Editor**. Ini menyiapkan empat tabel dan policy RLS untuk role `authenticated`.
-2. Di awal `frontend/app.js`, ganti placeholder berikut dengan URL dan **publishable key** dari project Supabase:
-
-```js
-const SUPABASE_URL = 'https://PROJECT_REF.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_...';
-```
-
-Ambil nilai tersebut dari **Project Settings → API**. Publishable key memang dipakai di browser; RLS membatasi akses data. **Jangan pernah** memasukkan service role/secret key ke frontend.
-
-3. Tambahkan akun operator di **Authentication → Users → Add user**. Konfirmasi email jika project mewajibkannya.
-
-## GitHub Pages
-
-1. Push repository tanpa file `.env`.
-2. Buka repository **Settings → Pages**.
-3. Pilih **Deploy from a branch**, branch `main`, dan folder `/(root)` sebagai sumber. `index.html` di root akan mengarahkan pengunjung ke `frontend/`.
-4. Tambahkan URL situs GitHub Pages pada **Supabase → Authentication → URL Configuration → Redirect URLs** bila diperlukan untuk alur Auth project.
-
-Setelah publish key diisi dan RLS SQL dijalankan ulang, buka URL Pages untuk login. GitHub Pages dapat melayani frontend statis, tetapi tidak menjalankan `backend/app.js`.
-
-## Lokal
-
-Untuk menguji dengan server statis bawaan Node:
-
-```powershell
-node backend/app.js
-```
-
-Buka `http://localhost:3000`. Operasi frontend menggunakan Supabase langsung; server lokal hanya menyajikan file statis.
+🌐 **Demo website:** [https://ebessebastian2018-web.github.io/gas-station-cash-app/](https://ebessebastian2018-web.github.io/gas-station-cash-app/)
 
 ## Fitur
 
-- Ringkasan pemasukan dan pengeluaran tunai, saldo shift, serta jumlah transaksi.
-- Grafik arus kas 7 atau 14 hari dan komposisi pemasukan/pengeluaran.
-- Pencatatan transaksi tunai, transfer, atau kartu/QRIS, dengan kategori sesuai jenisnya.
-- Pembukaan dan penutupan shift serta pencatatan saldo kas fisik saat tutup.
+- Ringkasan pemasukan, pengeluaran, saldo shift, dan jumlah transaksi.
+- Grafik arus kas untuk 7 atau 14 hari terakhir.
+- Pencatatan transaksi tunai, transfer, atau kartu/QRIS.
+- Pembukaan dan penutupan shift kasir.
 - Pencarian dan filter transaksi.
+- Login operator dan penyimpanan data menggunakan Supabase.
 
-Hari operasional dan agregasi grafik menggunakan tanggal UTC. Library Supabase JS v2 dimuat dari jsDelivr CDN.
+## Struktur repository
+
+```text
+.
+├── backend/
+│   ├── .env.example
+│   ├── app.js
+│   └── schema.sql
+├── frontend/
+│   ├── app.js
+│   ├── index.html
+│   └── styles.css
+├── docs/
+├── .gitignore
+├── index.html
+└── README.md
+```
+
+Frontend adalah halaman aplikasi. Backend Node.js menyajikan frontend sekaligus API untuk login dan operasi data saat dijalankan secara lokal. Database dan autentikasi dikelola oleh Supabase.
+
+## Menjalankan aplikasi lokal
+
+### Persiapan Supabase
+
+1. Buat atau pilih project Supabase.
+2. Buka **SQL Editor**, lalu jalankan seluruh isi [`backend/schema.sql`](backend/schema.sql) untuk membuat tabel, policy akses, dan kategori awal.
+3. Buat akun operator melalui **Authentication → Users → Add user**. Konfirmasi email jika diminta.
+
+### Jalankan frontend dan backend
+
+Pastikan Node.js 18 atau lebih baru sudah terpasang. Dari folder repository:
+
+1. Salin `backend/.env.example` menjadi `backend/.env`.
+2. Isi file `backend/.env` dengan URL project dan **anon/publishable key** dari **Supabase → Project Settings → API**:
+
+   ```env
+   SUPABASE_URL=https://PROJECT_REF.supabase.co
+   SUPABASE_ANON_KEY=sb_publishable_...
+   PORT=3000
+   ```
+
+3. Jalankan server:
+
+   ```powershell
+   node backend/app.js
+   ```
+
+4. Buka [http://localhost:3000](http://localhost:3000), lalu masuk dengan akun operator Supabase.
+
+Tidak ada paket npm tambahan yang perlu diinstal. Backend dan frontend lokal dilayani dari origin yang sama.
+
+> Jangan unggah `backend/.env` ke GitHub. File tersebut diabaikan oleh `.gitignore`. Gunakan hanya anon/publishable key; jangan pernah memasukkan service-role/secret key ke frontend.
+
+## GitHub Pages
+
+GitHub Pages hanya menjalankan frontend statis, bukan backend Node.js. Untuk mengaktifkan demo Pages dengan project Supabase sendiri:
+
+1. Di **Settings → Pages** repository, pilih **Deploy from a branch**, branch `main`, folder `/(root)`.
+2. Atur `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY` di awal [`frontend/app.js`](frontend/app.js) menggunakan URL dan publishable key project Supabase.
+3. Jalankan [`backend/schema.sql`](backend/schema.sql) di Supabase dan buat akun operator.
+4. Jika diperlukan, tambahkan URL GitHub Pages pada **Supabase → Authentication → URL Configuration → Redirect URLs**.
+
+Untuk menjalankan versi lokal dengan backend, ikuti petunjuk di atas. Backend Node.js untuk penggunaan online perlu di-deploy ke layanan hosting yang mendukung server Node.js.
+
+## Dokumentasi database
+
+Diagram ERD, relasi, constraint, indeks, dan kebijakan RLS tersedia di [`docs/skema-sistem-kas-spbu.md`](docs/skema-sistem-kas-spbu.md).
+
+## Teknologi
+
+- Frontend: HTML, CSS, JavaScript.
+- Backend: Node.js built-in HTTP server.
+- Database dan autentikasi: Supabase (PostgreSQL).
+
+Ringkasan harian dan agregasi grafik menggunakan tanggal UTC. GitHub Pages memuat Supabase JS v2 dari jsDelivr CDN.
