@@ -3,7 +3,8 @@
 const SUPABASE_URL = 'https://dxsuybxregdldmkduuye.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_bBWO0GD6aZj5aYMzFpqnng_qYqhBoOP';
 const hasSupabaseConfig = !SUPABASE_URL.includes('YOUR_') && !SUPABASE_PUBLISHABLE_KEY.includes('YOUR_');
-const usesBackendApi = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const usesBackendApi = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  && window.location.port === '3000';
 const supabaseClient = hasSupabaseConfig && window.supabase
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
   : null;

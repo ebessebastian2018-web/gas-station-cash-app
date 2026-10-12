@@ -22,10 +22,16 @@ Dashboard berbasis web untuk mencatat transaksi dan memantau kas operasional SPB
 │   ├── .env.example
 │   ├── app.js
 │   └── schema.sql
+├── .github/
+│   └── workflows/
+│       └── deploy-pages.yml
 ├── frontend/
 │   ├── app.js
 │   ├── index.html
 │   └── styles.css
+├── supabase/
+│   ├── config.toml
+│   └── migrations/
 ├── docs/
 ├── .gitignore
 ├── index.html
@@ -71,14 +77,33 @@ Saat mencatat pengeluaran, rincian struk dapat ditulis langsung (maksimal 2.000 
 
 ## GitHub Pages
 
-GitHub Pages hanya menjalankan frontend statis, bukan backend Node.js. Untuk mengaktifkan demo Pages dengan project Supabase sendiri:
+GitHub Pages hanya menjalankan frontend statis, bukan backend Node.js. Workflow [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) menerbitkan isi repository saat ada push ke branch `main` atau `master`, atau saat dijalankan manual di tab **Actions**.
 
-1. Di **Settings → Pages** repository, pilih **Deploy from a branch**, branch `main`, folder `/(root)`.
-2. Atur `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY` di awal [`frontend/app.js`](frontend/app.js) menggunakan URL dan publishable key project Supabase.
-3. Jalankan [`backend/schema.sql`](backend/schema.sql) di Supabase dan buat akun operator.
-4. Jika diperlukan, tambahkan URL GitHub Pages pada **Supabase → Authentication → URL Configuration → Redirect URLs**.
+1. Pastikan file perubahan sudah di-push ke repository GitHub.
+2. Di **Settings → Pages**, pilih **GitHub Actions** sebagai build and deployment source.
+3. Jalankan workflow **Deploy GitHub Pages** pada tab **Actions**, atau push perubahan ke branch `main`/`master`.
+4. Pastikan URL dan publishable key Supabase di awal [`frontend/app.js`](frontend/app.js) menunjuk project yang ingin digunakan. Publishable key aman untuk frontend; jangan gunakan secret/service-role key.
+5. Jalankan schema database di Supabase dan buat akun operator. Jika diperlukan, tambahkan URL GitHub Pages pada **Supabase → Authentication → URL Configuration → Redirect URLs**.
 
 Untuk menjalankan versi lokal dengan backend, ikuti petunjuk di atas. Backend Node.js untuk penggunaan online perlu di-deploy ke layanan hosting yang mendukung server Node.js.
+
+## Supabase migrations
+
+Konfigurasi Supabase CLI berada di [`supabase/config.toml`](supabase/config.toml), dan schema awal yang sudah ada dicatat sebagai [`supabase/migrations/20261012000000_initial_schema.sql`](supabase/migrations/20261012000000_initial_schema.sql). Migration tersebut mencerminkan [`backend/schema.sql`](backend/schema.sql) untuk setup project baru; gunakan folder migrations sebagai riwayat perubahan database berikutnya.
+
+Untuk menjalankan migration pada project Supabase:
+
+```powershell
+npx supabase login
+npx supabase link --project-ref dxsuybxregdldmkduuye
+npx supabase db push
+```
+
+Perintah `db push` mengubah database project yang terhubung. Jangan jalankan sebelum memeriksa migration dan memastikan target project benar. Workflow GitHub Pages hanya menerbitkan frontend; workflow tersebut tidak mengubah database Supabase.
+
+### Menjalankan dengan VS Code Live Server
+
+Live Server (biasanya `http://127.0.0.1:5500`) menggunakan Supabase langsung dari frontend. Pastikan project Supabase sudah menjalankan `backend/schema.sql`, lalu masuk dengan akun operator Supabase. Untuk memakai backend Node.js lokal, jalankan `node backend/app.js` dan buka `http://localhost:3000`.
 
 ## Dokumentasi database
 
