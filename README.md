@@ -54,6 +54,7 @@ Jika login ditolak karena URL redirect, tambahkan URL GitHub Pages atau URL loka
 
 ## Fitur
 
+- Navigasi halaman terpisah untuk Ringkasan, Transaksi, Shift Kasir, dan Laporan.
 - Ringkasan pemasukan, pengeluaran, saldo shift, dan jumlah transaksi.
 - Grafik arus kas 7 atau 14 hari terakhir.
 - Pencatatan transaksi tunai, transfer, atau kartu/QRIS.

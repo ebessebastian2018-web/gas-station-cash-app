@@ -9,6 +9,7 @@ const supabaseClient = hasSupabaseConfig && window.supabase
 
 const state = {
   dashboard: null,
+  page: null,
   type: 'income',
   filter: 'all',
   search: '',
@@ -24,6 +25,7 @@ const elements = {
   loginButton: document.getElementById('loginButton'),
   appShell: document.getElementById('appShell'),
   connection: document.getElementById('connectionStatus'),
+  breadcrumbTitle: document.getElementById('breadcrumbTitle'),
   setupNotice: document.getElementById('setupNotice'),
   income: document.getElementById('incomeValue'),
   expense: document.getElementById('expenseValue'),
@@ -238,6 +240,7 @@ function renderSummary() {
     ? 'Tutup shift <i data-lucide="arrow-up-right"></i>'
     : 'Mulai shift <i data-lucide="arrow-up-right"></i>';
   document.getElementById('balanceContext').textContent = activeShift ? 'Shift aktif' : 'Belum ada shift';
+  document.getElementById('shiftPageBalance').textContent = rupiah.format(summary.balance);
   document.getElementById('profileName').textContent = activeShift?.cashier?.full_name || state.dashboard.cashiers[0]?.full_name || 'Kasir Utama';
 }
 
@@ -622,10 +625,36 @@ elements.chartRange.addEventListener('change', (event) => {
   renderChart();
 });
 document.getElementById('menuToggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+function showPage(section = 'ringkasan') {
+  const pageTitles = {
+    ringkasan: 'Ringkasan kas',
+    transaksi: 'Transaksi',
+    shift: 'Shift kasir',
+    laporan: 'Laporan',
+  };
+  const page = Object.hasOwn(pageTitles, section) ? section : 'ringkasan';
+  const pageChanged = state.page !== page;
+  state.page = page;
+  document.querySelectorAll('[data-page-view]').forEach((view) => {
+    view.hidden = view.dataset.pageView !== page;
+  });
+  document.querySelectorAll('.nav-link').forEach((link) => {
+    const active = link.dataset.section === page;
+    link.classList.toggle('active', active);
+    if (active) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+  elements.breadcrumbTitle.textContent = pageTitles[page];
+  document.title = `Bas Station | ${pageTitles[page]}`;
+  document.getElementById('sidebar').classList.remove('open');
+  if (pageChanged) window.scrollTo(0, 0);
+}
+
 document.querySelectorAll('.nav-link').forEach((link) => link.addEventListener('click', () => {
-  document.querySelectorAll('.nav-link').forEach((item) => item.classList.toggle('active', item === link));
   document.getElementById('sidebar').classList.remove('open');
 }));
+window.addEventListener('hashchange', () => showPage(window.location.hash.slice(1)));
 
 if (window.lucide) window.lucide.createIcons();
+showPage(window.location.hash.slice(1) || 'ringkasan');
 initializeApplication();
