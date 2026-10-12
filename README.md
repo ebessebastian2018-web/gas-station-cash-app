@@ -1,6 +1,6 @@
-# Aplikasi Kas Operasional SPBU
+# Bas Station
 
-Dashboard web untuk mencatat transaksi dan memantau kas operasional SPBU. Frontend statis terhubung langsung ke Supabase dan dipublikasikan melalui GitHub Pages.
+Dashboard web Bas Station membantu mencatat transaksi dan memantau kas operasional SPBU. Frontend statis terhubung langsung ke Supabase dan dipublikasikan melalui GitHub Pages.
 
 🌐 **Demo website:** [https://ebessebastian2018-web.github.io/gas-station-cash-app/](https://ebessebastian2018-web.github.io/gas-station-cash-app/)
 
@@ -15,6 +15,10 @@ Dashboard web untuk mencatat transaksi dan memantau kas operasional SPBU. Fronte
 │   └── schema.sql
 ├── frontend/
 │   ├── app.js
+│   ├── images/
+│   │   ├── station-main.jpg
+│   │   ├── station-night.jpg
+│   │   └── station-sunset.jpg
 │   ├── index.html
 │   └── styles.css
 ├── .gitignore
@@ -53,6 +57,9 @@ Jika login ditolak karena URL redirect, tambahkan URL GitHub Pages atau URL loka
 - Pembukaan dan penutupan shift kasir.
 - Pencarian dan filter transaksi.
 - Login operator dan penyimpanan data menggunakan Supabase.
+- Beranda pengantar Bas Station dengan foto suasana pom bensin.
+
+Foto beranda dari [Pexels](https://www.pexels.com/license/), dengan kredit pada halaman login.
 
 ## Teknologi
 

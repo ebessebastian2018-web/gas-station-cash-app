@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f4f6f1" />
-    <meta name="description" content="Dashboard pengelolaan kas operasional SPBU." />
-    <title>Arus Kas | SPBU</title>
+    <meta name="theme-color" content="#10251d" />
+    <meta name="description" content="Bas Station membantu mengelola transaksi, shift, dan arus kas operasional SPBU." />
+    <title>Bas Station | Operasional SPBU</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -16,31 +16,58 @@
   </head>
   <body>
     <main class="auth-screen" id="authScreen">
-      <section class="auth-card" aria-labelledby="authTitle">
-        <a class="brand auth-brand" href="#" aria-label="Arus Kas SPBU">
+      <section class="auth-showcase" aria-labelledby="welcomeTitle">
+        <a class="brand auth-brand" href="#" aria-label="Bas Station">
           <span class="brand-mark"><i data-lucide="fuel"></i></span>
-          <span class="brand-copy"><strong>arus<span>.</span>kas</strong><small>STASIUN PENGISIAN</small></span>
+          <span class="brand-copy"><strong>Bas <span>Station</span></strong><small>MANAJEMEN OPERASIONAL SPBU</small></span>
         </a>
-        <p class="eyebrow"><span class="eyebrow-line"></span>AKSES OPERATOR</p>
-        <h1 id="authTitle">Masuk ke kas SPBU</h1>
-        <p class="auth-copy">Gunakan email dan password akun Supabase Anda.</p>
+        <div class="auth-intro">
+          <p class="eyebrow"><span class="eyebrow-line"></span>RUANG KENDALI SPBU ANDA</p>
+          <h2 id="welcomeTitle">Operasional lebih rapi.<br /><span>Bisnis terus melaju.</span></h2>
+          <p class="auth-intro-copy">Satu tempat untuk memantau transaksi, mengelola shift kasir, dan memahami arus kas stasiun Anda.</p>
+          <div class="auth-feature-list">
+            <span><i data-lucide="wallet-cards"></i>Catatan kas terpusat</span>
+            <span><i data-lucide="users-round"></i>Shift kasir terpantau</span>
+            <span><i data-lucide="chart-no-axes-combined"></i>Laporan mudah dipahami</span>
+          </div>
+        </div>
+        <div class="auth-photo-grid" aria-label="Foto suasana stasiun pengisian bahan bakar">
+          <figure class="auth-photo-main">
+            <img src="images/station-main.jpg" alt="Area pom bensin modern dengan beberapa dispenser bahan bakar" fetchpriority="high" />
+            <figcaption><span class="photo-live-dot"></span>Lebih dekat dengan operasional harian</figcaption>
+          </figure>
+          <figure class="auth-photo-side auth-photo-sunset">
+            <img src="images/station-sunset.jpg" alt="Dispenser pom bensin saat matahari terbenam" />
+          </figure>
+          <figure class="auth-photo-side auth-photo-night">
+            <img src="images/station-night.jpg" alt="Stasiun pengisian yang terang pada malam hari" />
+          </figure>
+        </div>
+        <p class="photo-credit">Foto oleh <a href="https://www.pexels.com/@ddlogg-2150483267/" target="_blank" rel="noreferrer">ddlogg</a>, <a href="https://www.pexels.com/@thekameragrapher/" target="_blank" rel="noreferrer">Ritesh Singh</a>, dan <a href="https://www.pexels.com/photo/illuminated-gas-station-at-night-in-malaga-32860475/" target="_blank" rel="noreferrer">alienganímedes</a> di Pexels</p>
+      </section>
+
+      <section class="auth-card" aria-labelledby="authTitle">
+        <div class="login-card-topline"><span class="login-card-icon"><i data-lucide="fingerprint"></i></span><span>PORTAL OPERATOR</span></div>
+        <h1 id="authTitle">Selamat datang<br />kembali.</h1>
+        <p class="auth-copy">Masuk untuk melihat kondisi dan aktivitas SPBU Anda.</p>
         <form id="loginForm">
-          <label class="field-label" for="loginEmail">Email</label>
-          <input class="form-control" id="loginEmail" name="email" type="email" autocomplete="username" placeholder="nama@spbu.id" required />
+          <label class="field-label" for="loginEmail">Email operator</label>
+          <div class="auth-input-wrap"><i data-lucide="mail"></i><input class="form-control" id="loginEmail" name="email" type="email" autocomplete="username" placeholder="nama@spbu.id" required /></div>
           <label class="field-label" for="loginPassword">Password</label>
-          <input class="form-control" id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Masukkan password" required />
+          <div class="auth-input-wrap"><i data-lucide="lock-keyhole"></i><input class="form-control" id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Masukkan password" required /></div>
           <p class="auth-message" id="authMessage" role="alert" aria-live="polite"></p>
-          <button class="button button-primary login-submit" id="loginButton" type="submit"><i data-lucide="log-in"></i>Masuk</button>
+          <button class="button button-primary login-submit" id="loginButton" type="submit"><span>Masuk ke dashboard</span><i data-lucide="arrow-right"></i></button>
         </form>
-        <div class="auth-help"><i data-lucide="info"></i><span>Akun operator dikelola di Supabase: <strong>Authentication → Users</strong>.</span></div>
+        <div class="auth-help"><i data-lucide="shield-check"></i><span>Akses aman untuk operator terdaftar. Akun dikelola oleh administrator Supabase.</span></div>
+        <div class="login-card-foot"><span><i data-lucide="lock-keyhole"></i>Koneksi terenkripsi</span><span>Bas Station · 2026</span></div>
       </section>
     </main>
 
     <div class="app-shell" id="appShell" hidden>
       <aside class="sidebar" id="sidebar">
-        <a class="brand" href="#ringkasan" aria-label="Arus Kas, beranda">
+        <a class="brand" href="#ringkasan" aria-label="Bas Station, beranda">
           <span class="brand-mark"><i data-lucide="fuel"></i></span>
-          <span class="brand-copy"><strong>arus<span>.</span>kas</strong><small>STASIUN PENGISIAN</small></span>
+          <span class="brand-copy"><strong>Bas <span>Station</span></strong><small>MANAJEMEN SPBU</small></span>
         </a>
 
         <div class="station-switcher">
@@ -87,7 +114,7 @@
         <div class="page-wrap">
           <section class="welcome-row">
             <div>
-              <p class="eyebrow"><span class="eyebrow-line"></span>RUANG KENDALI KEUANGAN</p>
+              <p class="eyebrow"><span class="eyebrow-line"></span>RUANG KENDALI BAS STATION</p>
               <h1>Ringkasan kas</h1>
               <p class="page-subtitle">Pantau arus uang dan aktivitas operasional SPBU hari ini.</p>
             </div>
@@ -169,7 +196,7 @@
             <div class="table-footer"><span id="tableSummary">Menampilkan 0 transaksi</span><button class="text-button" id="viewAllButton" type="button">Lihat semua <i data-lucide="arrow-right"></i></button></div>
           </section>
 
-          <footer class="page-footer"><span>© <span id="copyrightYear">2026</span> Arus Kas · SPBU Melati</span><span><span class="footer-dot"></span><span id="systemStatus">Menghubungkan ke Supabase</span></span></footer>
+          <footer class="page-footer"><span>© <span id="copyrightYear">2026</span> Bas Station · SPBU Melati</span><span><span class="footer-dot"></span><span id="systemStatus">Menghubungkan ke Supabase</span></span></footer>
         </div>
       </main>
     </div>
