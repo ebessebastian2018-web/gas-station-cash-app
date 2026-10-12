@@ -22,7 +22,7 @@ Isi kolom berikut sendiri apabila sudah menyiapkan akun operator untuk demonstra
 
 | Username / email | Password |
 |---|---|
-| `[ISI SENDIRI]` | `[ISI SENDIRI]` |
+| `ebessebastian2018@gmail.com` | `123456` |
 
 > **Keamanan:** repository dan README GitHub dapat dilihat publik. Jangan masukkan password asli, service-role key, atau rahasia lain ke dokumen ini. Gunakan akun demo khusus dengan akses minimum, atau bagikan kredensial secara privat kepada dosen/penguji.
 
