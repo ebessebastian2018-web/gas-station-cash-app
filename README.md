@@ -40,7 +40,7 @@ Frontend statis berkomunikasi langsung dengan Supabase menggunakan Supabase Java
 - **Shift kasir:** memulai shift dengan kas awal, melihat kasir dan waktu mulai, serta menutup shift dengan memasukkan jumlah kas fisik.
 - **Laporan:** grafik pemasukan dan pengeluaran tunai untuk 7 atau 14 hari terakhir serta komposisi arus kas.
 - **Autentikasi:** login dan logout akun operator yang dikelola melalui Supabase Authentication.
-- **Tampilan responsif:** navigasi halaman terpisah dan layout yang menyesuaikan desktop maupun perangkat seluler.
+- **Tampilan responsif:** navigasi menu seluler dengan backdrop, kontrol ramah sentuhan, dan transaksi dalam bentuk kartu pada layar ponsel.
 
 ## Logika akuntansi dan perhitungan
 

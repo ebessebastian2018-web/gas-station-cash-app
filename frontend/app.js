@@ -285,7 +285,7 @@ function transactionMarkup(transaction) {
   const receipt = transaction.receipt_text
     ? `<button class="receipt-link" type="button" data-receipt-id="${escapeHtml(transaction.id)}"><i data-lucide="file-text"></i><span>Lihat rincian</span></button>`
     : '<span class="receipt-missing">—</span>';
-  return `<tr><td><div class="transaction-name"><span class="transaction-icon ${kind}"><i data-lucide="${icon}"></i></span><span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(transaction.shift?.cashier?.full_name || 'Kasir')} · ${date}</small></span></div></td><td><span class="category-tag ${kind}">${escapeHtml(category)}</span></td><td>${time}</td><td><span class="method-label"><i data-lucide="${icon}"></i>${method}</span></td><td>${receipt}</td><td class="amount-cell ${kind}">${isIncome ? '+' : '−'}${escapeHtml(rupiah.format(transaction.amount))}</td></tr>`;
+  return `<tr><td><div class="transaction-name"><span class="transaction-icon ${kind}"><i data-lucide="${icon}"></i></span><span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(transaction.shift?.cashier?.full_name || 'Kasir')} · ${date}</small></span></div></td><td data-label="Kategori"><span class="category-tag ${kind}">${escapeHtml(category)}</span></td><td data-label="Waktu">${time}</td><td data-label="Metode"><span class="method-label"><i data-lucide="${icon}"></i>${method}</span></td><td data-label="Struk">${receipt}</td><td data-label="Jumlah" class="amount-cell ${kind}">${isIncome ? '+' : '−'}${escapeHtml(rupiah.format(transaction.amount))}</td></tr>`;
 }
 
 function renderTransactions() {
@@ -587,6 +587,7 @@ document.addEventListener('keydown', (event) => {
   if (!elements.modal.hidden) closeModal();
   if (!elements.shiftModal.hidden) closeShiftModal();
   if (!elements.receiptModal.hidden) closeReceiptModal();
+  if (sidebar.classList.contains('open')) setSidebarOpen(false);
 });
 document.querySelectorAll('.type-option').forEach((button) => button.addEventListener('click', () => {
   state.type = button.dataset.type;
@@ -624,7 +625,19 @@ elements.chartRange.addEventListener('change', (event) => {
   state.chartDays = Number(event.target.value);
   renderChart();
 });
-document.getElementById('menuToggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+const sidebar = document.getElementById('sidebar');
+const menuToggle = document.getElementById('menuToggle');
+const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+function setSidebarOpen(open) {
+  sidebar.classList.toggle('open', open);
+  menuToggle.setAttribute('aria-expanded', String(open));
+  menuToggle.setAttribute('aria-label', open ? 'Tutup navigasi' : 'Buka navigasi');
+  sidebarBackdrop.hidden = !open;
+}
+
+menuToggle.addEventListener('click', () => setSidebarOpen(!sidebar.classList.contains('open')));
+sidebarBackdrop.addEventListener('click', () => setSidebarOpen(false));
 function showPage(section = 'ringkasan') {
   const pageTitles = {
     ringkasan: 'Ringkasan kas',
@@ -646,12 +659,12 @@ function showPage(section = 'ringkasan') {
   });
   elements.breadcrumbTitle.textContent = pageTitles[page];
   document.title = `Bas Station | ${pageTitles[page]}`;
-  document.getElementById('sidebar').classList.remove('open');
+  setSidebarOpen(false);
   if (pageChanged) window.scrollTo(0, 0);
 }
 
 document.querySelectorAll('.nav-link').forEach((link) => link.addEventListener('click', () => {
-  document.getElementById('sidebar').classList.remove('open');
+  setSidebarOpen(false);
 }));
 window.addEventListener('hashchange', () => showPage(window.location.hash.slice(1)));
 

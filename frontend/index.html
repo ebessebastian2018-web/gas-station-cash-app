@@ -140,10 +140,11 @@
           </div>
         </div>
       </aside>
+      <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Tutup navigasi" hidden></button>
 
       <main class="main-content" id="appMain">
         <header class="topbar">
-          <button class="icon-button menu-toggle" id="menuToggle" aria-label="Buka navigasi"><i data-lucide="menu"></i></button>
+          <button class="icon-button menu-toggle" id="menuToggle" type="button" aria-label="Buka navigasi" aria-controls="sidebar" aria-expanded="false"><i data-lucide="menu"></i></button>
           <div class="breadcrumb"><span>Operasional</span><i data-lucide="chevron-right"></i><strong id="breadcrumbTitle">Ringkasan kas</strong></div>
           <div class="topbar-actions">
             <span class="sync-status" id="connectionStatus"><span class="status-dot"></span>Menghubungkan</span>
