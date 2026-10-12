@@ -3,8 +3,6 @@
 const SUPABASE_URL = 'https://dxsuybxregdldmkduuye.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_bBWO0GD6aZj5aYMzFpqnng_qYqhBoOP';
 const hasSupabaseConfig = !SUPABASE_URL.includes('YOUR_') && !SUPABASE_PUBLISHABLE_KEY.includes('YOUR_');
-const usesBackendApi = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-  && window.location.port === '3000';
 const supabaseClient = hasSupabaseConfig && window.supabase
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
   : null;
@@ -85,27 +83,6 @@ function assertSupabaseSuccess(result) {
   return result.data;
 }
 
-async function backendRequest(path, options = {}) {
-  const response = await fetch(path, {
-    method: options.method || 'GET',
-    credentials: 'same-origin',
-    ...(options.body ? {
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(options.body),
-    } : {}),
-  });
-  let result;
-  try {
-    result = await response.json();
-  } catch {
-    throw new Error('Backend mengembalikan respons yang tidak valid.');
-  }
-  if (!response.ok) {
-    throw Object.assign(new Error(result.error || 'Permintaan ke backend gagal.'), { status: response.status });
-  }
-  return result;
-}
-
 function showAuthScreen(message = '') {
   elements.appShell.hidden = true;
   elements.authScreen.hidden = false;
@@ -115,22 +92,6 @@ function showAuthScreen(message = '') {
 
 async function initializeApplication() {
   try {
-    if (usesBackendApi) {
-      const health = await backendRequest('/api/health');
-      if (!health.configured) {
-        showAuthScreen('Konfigurasikan SUPABASE_URL dan SUPABASE_ANON_KEY di backend/.env.');
-        return;
-      }
-      const session = await backendRequest('/api/auth/session');
-      if (!session.authenticated) {
-        showAuthScreen();
-        return;
-      }
-      elements.authScreen.hidden = true;
-      elements.appShell.hidden = false;
-      await refreshDashboard();
-      return;
-    }
     if (!window.supabase) {
       showAuthScreen('Library Supabase belum termuat. Periksa koneksi internet atau CDN.');
       return;
@@ -159,16 +120,6 @@ async function signIn(event) {
   elements.authMessage.textContent = '';
   const values = Object.fromEntries(new FormData(elements.loginForm).entries());
   try {
-    if (usesBackendApi) {
-      await backendRequest('/api/auth/login', {
-        method: 'POST',
-        body: { email: values.email.trim(), password: values.password },
-      });
-      elements.authScreen.hidden = true;
-      elements.appShell.hidden = false;
-      await refreshDashboard();
-      return;
-    }
     if (!supabaseClient) throw new Error('Isi SUPABASE_URL dan SUPABASE_PUBLISHABLE_KEY pada frontend/app.js.');
     const { error } = await supabaseClient.auth.signInWithPassword({
       email: values.email.trim(),
@@ -194,12 +145,8 @@ async function signOut() {
   state.dashboard = null;
   elements.loginForm.reset();
   try {
-    if (usesBackendApi) {
-      await backendRequest('/api/auth/logout', { method: 'POST' });
-    } else {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) throw new Error(supabaseErrorMessage(error));
-    }
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) throw new Error(supabaseErrorMessage(error));
     showAuthScreen('Anda sudah keluar dari akun.');
   } catch (error) {
     showAuthScreen(error.message);
@@ -213,7 +160,7 @@ function setConnection(connected) {
   elements.setupNotice.hidden = connected;
   document.getElementById('systemStatus').textContent = connected
     ? 'Sistem beroperasi normal'
-    : usesBackendApi ? 'Backend belum terhubung' : 'Supabase belum terhubung';
+    : 'Supabase belum terhubung';
   document.getElementById('addTransactionButton').disabled = !connected;
   elements.shiftAction.disabled = !connected;
   if (!connected) {
@@ -338,12 +285,6 @@ async function refreshDashboard() {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
   }).format(new Date());
   try {
-    if (usesBackendApi) {
-      state.dashboard = await backendRequest(`/api/bootstrap?date=${encodeURIComponent(date)}`);
-      setConnection(true);
-      renderDashboard();
-      return;
-    }
     if (!supabaseClient) throw new Error('Isi SUPABASE_URL dan SUPABASE_PUBLISHABLE_KEY pada frontend/app.js.');
     const rangeEnd = new Date(`${date}T23:59:59.999Z`);
     const rangeStart = new Date(`${date}T00:00:00.000Z`);
@@ -419,7 +360,7 @@ async function refreshDashboard() {
   } catch (error) {
     setConnection(false);
     if (error.status === 401 || error.code === 'PGRST301') {
-      if (!usesBackendApi) await supabaseClient?.auth.signOut();
+      await supabaseClient?.auth.signOut();
       showAuthScreen('Sesi login berakhir. Silakan masuk kembali.');
       return;
     }
@@ -492,19 +433,15 @@ async function saveTransaction(event) {
     data.description = String(data.description || '').trim();
     data.receipt_text = state.type === 'expense' ? String(data.receipt_text || '').trim() : '';
     if (data.receipt_text.length > 2000) throw new Error('Rincian struk maksimal 2.000 karakter.');
-    if (usesBackendApi) {
-      await backendRequest('/api/transactions', { method: 'POST', body: data });
-    } else {
-      const result = await supabaseClient.from('cash_transactions').insert({
-        shift_id: state.dashboard.activeShift.id,
-        category_id: data.category_id,
-        amount: data.amount,
-        description: data.description,
-        payment_method: data.payment_method,
-        receipt_text: data.receipt_text || null,
-      });
-      assertSupabaseSuccess(result);
-    }
+    const result = await supabaseClient.from('cash_transactions').insert({
+      shift_id: state.dashboard.activeShift.id,
+      category_id: data.category_id,
+      amount: data.amount,
+      description: data.description,
+      payment_method: data.payment_method,
+      receipt_text: data.receipt_text || null,
+    });
+    assertSupabaseSuccess(result);
     closeModal();
     showToast('Transaksi berhasil dicatat.');
     await refreshDashboard();
@@ -531,32 +468,18 @@ async function saveShift(event) {
   elements.shiftFormError.hidden = true;
   try {
     if (isClosing) {
-      if (usesBackendApi) {
-        await backendRequest(`/api/shifts/${state.dashboard.activeShift.id}/close`, {
-          method: 'POST',
-          body: { closing_cash: amount },
-        });
-      } else {
-        const result = await supabaseClient.from('shifts')
-          .update({ closing_cash: amount, closed_at: new Date().toISOString(), status: 'closed' })
-          .eq('id', state.dashboard.activeShift.id).eq('status', 'open').select('id').single();
-        assertSupabaseSuccess(result);
-      }
+      const result = await supabaseClient.from('shifts')
+        .update({ closing_cash: amount, closed_at: new Date().toISOString(), status: 'closed' })
+        .eq('id', state.dashboard.activeShift.id).eq('status', 'open').select('id').single();
+      assertSupabaseSuccess(result);
       closeShiftModal();
       showToast('Shift berhasil ditutup.');
     } else {
       const cashierId = formData.get('cashier_id');
-      if (!cashierId) throw new Error('Tambahkan kasir aktif melalui backend/schema.sql terlebih dahulu.');
-      if (usesBackendApi) {
-        await backendRequest('/api/shifts', {
-          method: 'POST',
-          body: { cashier_id: cashierId, opening_cash: amount },
-        });
-      } else {
-        const result = await supabaseClient.from('shifts')
-          .insert({ cashier_id: cashierId, opening_cash: amount, status: 'open' }).select('id').single();
-        assertSupabaseSuccess(result);
-      }
+      if (!cashierId) throw new Error('Tambahkan kasir aktif di Supabase terlebih dahulu.');
+      const result = await supabaseClient.from('shifts')
+        .insert({ cashier_id: cashierId, opening_cash: amount, status: 'open' }).select('id').single();
+      assertSupabaseSuccess(result);
       closeShiftModal();
       showToast('Shift berhasil dimulai.');
     }
