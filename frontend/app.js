@@ -204,12 +204,18 @@ function updateFuelSaleFields() {
 }
 
 function updateFuelSaleAmount() {
-  const product = document.getElementById('fuelTypeInput').value;
+  const fuelTypeInput = document.getElementById('fuelTypeInput');
+  const product = fuelTypeInput.value;
   const price = fuelPrices[product];
   const liters = Number(document.getElementById('fuelLitersInput').value);
   const amountInput = document.getElementById('amountInput');
   const total = Number.isFinite(liters) && liters > 0 ? Math.round(price * liters) : 0;
   amountInput.value = total || '';
+  document.querySelectorAll('.fuel-type-option').forEach((option) => {
+    const selected = option.dataset.fuelType === product;
+    option.classList.toggle('selected', selected);
+    option.setAttribute('aria-pressed', String(selected));
+  });
   document.getElementById('fuelPriceHint').textContent = total
     ? `${product} · ${rupiah.format(price)} / liter · Total ${rupiah.format(total)}`
     : `Harga ${product}: ${rupiah.format(price)} per liter`;
@@ -560,7 +566,12 @@ elements.shiftAction.addEventListener('click', openShiftModal);
 elements.form.addEventListener('submit', saveTransaction);
 elements.shiftForm.addEventListener('submit', saveShift);
 elements.categories.addEventListener('change', updateFuelSaleFields);
-document.getElementById('fuelTypeInput').addEventListener('change', updateFuelSaleAmount);
+document.getElementById('fuelTypeOptions').addEventListener('click', (event) => {
+  const option = event.target.closest('[data-fuel-type]');
+  if (!option) return;
+  document.getElementById('fuelTypeInput').value = option.dataset.fuelType;
+  updateFuelSaleAmount();
+});
 document.getElementById('fuelLitersInput').addEventListener('input', updateFuelSaleAmount);
 elements.modal.addEventListener('click', (event) => {
   if (event.target === elements.modal || event.target.closest('[data-close-modal]')) closeModal();

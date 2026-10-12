@@ -295,6 +295,13 @@ td { height: 53px; padding: 0 18px; border-top: 1px solid #f0f2ef; color: #63706
 .form-control:read-only { color: #8c302e; background: #fff8eb; font-weight: 700; }
 .fuel-fields { margin-top: 2px; padding: 2px 12px 11px; border: 1px solid #f2e4c9; border-radius: 8px; background: #fffdf7; }
 .fuel-fields .field-label { margin-top: 12px; }
+.fuel-type-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.fuel-type-option { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 9px 10px; border: 1px solid #eee4d6; border-radius: 7px; color: #59645c; background: white; text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease; }
+.fuel-type-option:hover { transform: translateY(-1px); border-color: #e6b75a; }
+.fuel-type-option.selected { border-color: #c32132; color: #941c2a; background: #fff5f1; box-shadow: 0 0 0 2px rgba(195,33,50,.08); }
+.fuel-type-option strong { font: 700 13px 'Space Grotesk', sans-serif; }
+.fuel-type-option > span { color: #555d57; font-size: 9px; font-weight: 700; white-space: nowrap; }
+.fuel-type-option small { color: #92988f; font-size: 8px; font-weight: 400; }
 .fuel-quantity-wrap { position: relative; }
 .fuel-quantity-wrap .form-control { padding-right: 48px; }
 .fuel-quantity-wrap > span { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); color: #89938b; font-size: 10px; }

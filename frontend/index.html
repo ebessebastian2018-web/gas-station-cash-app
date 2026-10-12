@@ -275,12 +275,13 @@
           <input type="hidden" name="type" value="income" />
           <label class="field-label" for="categoryInput">Kategori</label><select class="form-control" id="categoryInput" name="category_id" required><option value="">Pilih kategori</option></select>
           <div class="fuel-fields" id="fuelFields" hidden>
-            <label class="field-label" for="fuelTypeInput">Jenis bensin</label>
-            <select class="form-control" id="fuelTypeInput" name="fuel_type">
-              <option value="V1" data-price="10000">V1 — Rp10.000 / liter</option>
-              <option value="V2" data-price="15000">V2 — Rp15.000 / liter</option>
-              <option value="SX" data-price="7500">SX — Rp7.500 / liter</option>
-            </select>
+            <span class="field-label">Pilih jenis bensin</span>
+            <input id="fuelTypeInput" name="fuel_type" type="hidden" value="V1" />
+            <div class="fuel-type-options" id="fuelTypeOptions" role="group" aria-label="Jenis bensin">
+              <button class="fuel-type-option selected" type="button" data-fuel-type="V1" aria-pressed="true"><strong>V1</strong><span>Rp10.000 <small>/ liter</small></span></button>
+              <button class="fuel-type-option" type="button" data-fuel-type="V2" aria-pressed="false"><strong>V2</strong><span>Rp15.000 <small>/ liter</small></span></button>
+              <button class="fuel-type-option" type="button" data-fuel-type="SX" aria-pressed="false"><strong>SX</strong><span>Rp7.500 <small>/ liter</small></span></button>
+            </div>
             <label class="field-label" for="fuelLitersInput">Jumlah liter</label>
             <div class="fuel-quantity-wrap"><input class="form-control" id="fuelLitersInput" name="fuel_liters" type="number" min="0.01" step="0.01" placeholder="Contoh: 10" /><span>liter</span></div>
             <p class="field-hint" id="fuelPriceHint">Harga V1: Rp10.000 per liter</p>
