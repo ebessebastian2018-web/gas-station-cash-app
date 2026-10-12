@@ -21,11 +21,13 @@ Dashboard web Bas Station membantu mencatat transaksi dan memantau kas operasion
 │   │   └── station-sunset.jpg
 │   ├── index.html
 │   └── styles.css
+├── index.html
 ├── .gitignore
 └── README.md
 ```
 
 `frontend/` berisi halaman, JavaScript, dan stylesheet aplikasi. `backend/` hanya berisi SQL untuk menyiapkan database dan kebijakan akses Supabase; tidak ada server Node.js.
+Halaman [`index.html`](index.html) di root mengarahkan pengunjung GitHub Pages berbasis branch ke aplikasi di `frontend/`.
 
 ## Persiapan Supabase
 
