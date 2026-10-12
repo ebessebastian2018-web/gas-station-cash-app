@@ -41,13 +41,6 @@ const elements = {
   formError: document.getElementById('formError'),
   receiptModal: document.getElementById('receiptModal'),
   receiptContent: document.getElementById('receiptContent'),
-  receiptImage: document.getElementById('receiptImage'),
-  receiptOpenLink: document.getElementById('receiptOpenLink'),
-  receiptImageInput: document.getElementById('receiptImageInput'),
-  receiptPreview: document.getElementById('receiptPreview'),
-  receiptPreviewImage: document.getElementById('receiptPreviewImage'),
-  receiptUploadTitle: document.getElementById('receiptUploadTitle'),
-  receiptUploadHint: document.getElementById('receiptUploadHint'),
   shiftModal: document.getElementById('shiftModal'),
   shiftForm: document.getElementById('shiftForm'),
   shiftFormError: document.getElementById('shiftFormError'),
@@ -76,8 +69,7 @@ function escapeHtml(value) {
 function supabaseErrorMessage(error) {
   const message = String(error?.message || 'Permintaan ke Supabase gagal.');
   if (message.toLowerCase().includes('failed to fetch')) return 'Tidak dapat menghubungi Supabase. Periksa URL, publishable key, dan koneksi internet.';
-  if (message.includes('receipt_text') || message.includes('receipt_path') || error?.code === '42703') return 'Kolom struk belum tersedia. Jalankan backend/schema.sql di Supabase SQL Editor.';
-  if (message.toLowerCase().includes('bucket not found')) return 'Penyimpanan struk belum tersedia. Jalankan backend/schema.sql di Supabase SQL Editor.';
+  if (message.includes('receipt_text') || error?.code === '42703') return 'Kolom struk belum tersedia. Jalankan backend/schema.sql di Supabase SQL Editor.';
   if (error?.code === '42501' || message.toLowerCase().includes('row-level security')) {
     return 'Akses data ditolak oleh RLS. Jalankan ulang backend/schema.sql di Supabase SQL Editor.';
   }
@@ -191,8 +183,6 @@ function renderCategories() {
   const matching = categories.filter((category) => category.type === state.type);
   elements.categories.innerHTML = '<option value="">Pilih kategori</option>' + matching
     .map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`).join('');
-  document.getElementById('receiptField').hidden = state.type !== 'expense';
-  document.getElementById('receiptImageField').hidden = state.type !== 'income';
 }
 
 function renderSummary() {
@@ -253,8 +243,8 @@ function transactionMarkup(transaction) {
   const date = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(new Date(transaction.occurred_at));
   const methods = { cash: ['banknote', 'Tunai'], transfer: ['landmark', 'Transfer'], card: ['contactless', 'Kartu / QRIS'] };
   const [icon, method] = methods[transaction.payment_method] || methods.cash;
-  const receipt = transaction.receipt_path || transaction.receipt_text
-    ? `<button class="receipt-link" type="button" data-receipt-id="${escapeHtml(transaction.id)}"><i data-lucide="${transaction.receipt_path ? 'image' : 'file-text'}"></i><span>Lihat struk</span></button>`
+  const receipt = transaction.receipt_text
+    ? `<button class="receipt-link" type="button" data-receipt-id="${escapeHtml(transaction.id)}"><i data-lucide="file-text"></i><span>Lihat rincian</span></button>`
     : '<span class="receipt-missing">—</span>';
   return `<tr><td><div class="transaction-name"><span class="transaction-icon ${kind}"><i data-lucide="${icon}"></i></span><span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(transaction.shift?.cashier?.full_name || 'Kasir')} · ${date}</small></span></div></td><td><span class="category-tag ${kind}">${escapeHtml(category)}</span></td><td>${time}</td><td><span class="method-label"><i data-lucide="${icon}"></i>${method}</span></td><td>${receipt}</td><td class="amount-cell ${kind}">${isIncome ? '+' : '−'}${escapeHtml(rupiah.format(transaction.amount))}</td></tr>`;
 }
@@ -300,7 +290,7 @@ async function refreshDashboard() {
     rangeStart.setUTCDate(rangeStart.getUTCDate() - 13);
     const [transactionsResult, categoriesResult, cashiersResult, shiftsResult] = await Promise.all([
       supabaseClient.from('cash_transactions')
-        .select('id,shift_id,amount,description,payment_method,receipt_text,receipt_path,occurred_at,category:transaction_categories(id,name,type),shift:shifts(id,cashier:cashiers(full_name))')
+        .select('id,shift_id,amount,description,payment_method,receipt_text,occurred_at,category:transaction_categories(id,name,type),shift:shifts(id,cashier:cashiers(full_name))')
         .gte('occurred_at', rangeStart.toISOString())
         .lte('occurred_at', rangeEnd.toISOString())
         .order('occurred_at', { ascending: false })
@@ -387,7 +377,6 @@ function openModal() {
     return;
   }
   elements.form.reset();
-  clearReceiptImage();
   elements.formError.hidden = true;
   state.type = 'income';
   document.querySelectorAll('.type-option').forEach((button) => button.classList.toggle('selected', button.dataset.type === state.type));
@@ -399,7 +388,6 @@ function openModal() {
 
 function closeModal() {
   elements.modal.hidden = true;
-  clearReceiptImage();
   document.body.classList.remove('modal-open');
 }
 
@@ -437,56 +425,22 @@ async function saveTransaction(event) {
   const submit = document.getElementById('submitTransaction');
   const formData = new FormData(elements.form);
   const data = Object.fromEntries(formData.entries());
-  const receiptFile = formData.get('receipt_image');
   data.amount = Number(data.amount);
   submit.disabled = true;
   elements.formError.hidden = true;
   try {
     data.description = String(data.description || '').trim();
-    data.receipt_text = state.type === 'expense' ? String(data.receipt_text || '').trim() : '';
+    data.receipt_text = String(data.receipt_text || '').trim();
     if (data.receipt_text.length > 2000) throw new Error('Rincian struk maksimal 2.000 karakter.');
-    const validReceiptFile = receiptFile instanceof File && receiptFile.size > 0 ? receiptFile : null;
-    if (validReceiptFile && !['image/jpeg', 'image/png'].includes(validReceiptFile.type)) {
-      throw new Error('Foto struk harus berformat JPG atau PNG.');
-    }
-    if (validReceiptFile && validReceiptFile.size > 5 * 1024 * 1024) {
-      throw new Error('Ukuran foto struk maksimal 5 MB.');
-    }
-    const transactionId = crypto.randomUUID();
-    let receiptPath = null;
-    try {
-      if (validReceiptFile && state.type === 'income') {
-        const extension = validReceiptFile.type === 'image/png' ? 'png' : 'jpg';
-        receiptPath = `${transactionId}/${crypto.randomUUID()}.${extension}`;
-        const uploadResult = await supabaseClient.storage.from('cash-receipts').upload(receiptPath, validReceiptFile, {
-          contentType: validReceiptFile.type,
-          cacheControl: '3600',
-          upsert: false,
-        });
-        assertSupabaseSuccess(uploadResult);
-      }
-      const result = await supabaseClient.from('cash_transactions').insert({
-        id: transactionId,
-        shift_id: state.dashboard.activeShift.id,
-        category_id: data.category_id,
-        amount: data.amount,
-        description: data.description,
-        payment_method: data.payment_method,
-        receipt_text: data.receipt_text || null,
-        receipt_path: receiptPath,
-      });
-      assertSupabaseSuccess(result);
-    } catch (error) {
-      if (receiptPath) {
-        try {
-          const cleanupResult = await supabaseClient.storage.from('cash-receipts').remove([receiptPath]);
-          if (cleanupResult.error) console.error('Gagal membersihkan foto struk yang transaksinya tidak tersimpan.', cleanupResult.error);
-        } catch (cleanupError) {
-          console.error('Gagal membersihkan foto struk yang transaksinya tidak tersimpan.', cleanupError);
-        }
-      }
-      throw error;
-    }
+    const result = await supabaseClient.from('cash_transactions').insert({
+      shift_id: state.dashboard.activeShift.id,
+      category_id: data.category_id,
+      amount: data.amount,
+      description: data.description,
+      payment_method: data.payment_method,
+      receipt_text: data.receipt_text || null,
+    });
+    assertSupabaseSuccess(result);
     closeModal();
     showToast('Transaksi berhasil dicatat.');
     await refreshDashboard();
@@ -498,43 +452,15 @@ async function saveTransaction(event) {
   }
 }
 
-function clearReceiptImage() {
-  const previewUrl = elements.receiptPreviewImage.dataset.previewUrl;
-  if (previewUrl) URL.revokeObjectURL(previewUrl);
-  delete elements.receiptPreviewImage.dataset.previewUrl;
-  elements.receiptPreviewImage.removeAttribute('src');
-  elements.receiptImageInput.value = '';
-  elements.receiptPreview.hidden = true;
-  elements.receiptUploadTitle.textContent = 'Pilih foto struk';
-  elements.receiptUploadHint.textContent = 'JPG atau PNG, maksimal 5 MB';
-}
-
 function closeReceiptModal() {
   elements.receiptModal.hidden = true;
   elements.receiptContent.hidden = true;
-  elements.receiptImage.hidden = true;
-  elements.receiptImage.removeAttribute('src');
-  elements.receiptOpenLink.hidden = true;
-  elements.receiptOpenLink.removeAttribute('href');
   document.body.classList.remove('modal-open');
 }
 
-async function showTransactionReceipt(transaction) {
-  elements.receiptContent.hidden = true;
-  elements.receiptImage.hidden = true;
-  elements.receiptOpenLink.hidden = true;
-  if (transaction.receipt_path) {
-    const result = await supabaseClient.storage.from('cash-receipts').createSignedUrl(transaction.receipt_path, 60);
-    const signedUrl = assertSupabaseSuccess(result)?.signedUrl;
-    if (!signedUrl) throw new Error('Tautan foto struk tidak berhasil dibuat.');
-    elements.receiptImage.src = signedUrl;
-    elements.receiptImage.hidden = false;
-    elements.receiptOpenLink.href = signedUrl;
-    elements.receiptOpenLink.hidden = false;
-  } else {
-    elements.receiptContent.textContent = transaction.receipt_text || '';
-    elements.receiptContent.hidden = false;
-  }
+function showTransactionReceipt(transaction) {
+  elements.receiptContent.textContent = transaction.receipt_text || '';
+  elements.receiptContent.hidden = false;
   elements.receiptModal.hidden = false;
   document.body.classList.add('modal-open');
 }
@@ -601,34 +527,8 @@ document.addEventListener('keydown', (event) => {
 document.querySelectorAll('.type-option').forEach((button) => button.addEventListener('click', () => {
   state.type = button.dataset.type;
   document.querySelectorAll('.type-option').forEach((option) => option.classList.toggle('selected', option === button));
-  if (state.type !== 'expense') document.getElementById('receiptTextInput').value = '';
-  if (state.type !== 'income') clearReceiptImage();
   renderCategories();
 }));
-elements.receiptImageInput.addEventListener('change', () => {
-  const file = elements.receiptImageInput.files[0];
-  if (!file) return clearReceiptImage();
-  if (!['image/jpeg', 'image/png'].includes(file.type)) {
-    clearReceiptImage();
-    elements.formError.textContent = 'Foto struk harus berformat JPG atau PNG.';
-    elements.formError.hidden = false;
-    return;
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    clearReceiptImage();
-    elements.formError.textContent = 'Ukuran foto struk maksimal 5 MB.';
-    elements.formError.hidden = false;
-    return;
-  }
-  elements.formError.hidden = true;
-  const previewUrl = URL.createObjectURL(file);
-  elements.receiptPreviewImage.src = previewUrl;
-  elements.receiptPreviewImage.dataset.previewUrl = previewUrl;
-  elements.receiptPreview.hidden = false;
-  elements.receiptUploadTitle.textContent = file.name;
-  elements.receiptUploadHint.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
-});
-document.getElementById('removeReceiptImage').addEventListener('click', clearReceiptImage);
 document.getElementById('transactionSearch').addEventListener('input', (event) => {
   state.search = event.target.value.trim();
   renderTransactions();
@@ -643,16 +543,12 @@ document.getElementById('viewAllButton').addEventListener('click', () => {
   state.expanded = !state.expanded;
   renderTransactions();
 });
-elements.rows.addEventListener('click', async (event) => {
+elements.rows.addEventListener('click', (event) => {
   const receiptButton = event.target.closest('[data-receipt-id]');
   if (!receiptButton) return;
   const transaction = state.dashboard?.transactions.find((item) => item.id === receiptButton.dataset.receiptId);
-  if (!transaction?.receipt_text && !transaction?.receipt_path) return;
-  try {
-    await showTransactionReceipt(transaction);
-  } catch (error) {
-    showToast(supabaseErrorMessage(error), true);
-  }
+  if (!transaction?.receipt_text) return;
+  showTransactionReceipt(transaction);
 });
 elements.receiptModal.addEventListener('click', (event) => {
   if (event.target === elements.receiptModal || event.target.closest('[data-close-receipt-modal]')) {
