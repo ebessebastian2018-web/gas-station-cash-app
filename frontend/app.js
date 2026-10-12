@@ -54,6 +54,7 @@ const elements = {
 const rupiah = new Intl.NumberFormat('id-ID', {
   style: 'currency', currency: 'IDR', maximumFractionDigits: 0,
 });
+const fuelPrices = Object.freeze({ V1: 10_000, V2: 15_000, SX: 7_500 });
 
 function localDateKey(date = new Date()) {
   const offset = date.getTimezoneOffset() * 60_000;
@@ -183,6 +184,35 @@ function renderCategories() {
   const matching = categories.filter((category) => category.type === state.type);
   elements.categories.innerHTML = '<option value="">Pilih kategori</option>' + matching
     .map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`).join('');
+}
+
+function updateFuelSaleFields() {
+  const category = state.dashboard?.categories.find((item) => item.id === elements.categories.value);
+  const isFuelSale = category?.name === 'Penjualan BBM' && category.type === 'income';
+  const fuelFields = document.getElementById('fuelFields');
+  const fuelLitersInput = document.getElementById('fuelLitersInput');
+  const amountInput = document.getElementById('amountInput');
+  fuelFields.hidden = !isFuelSale;
+  fuelLitersInput.required = isFuelSale;
+  amountInput.readOnly = isFuelSale;
+  if (!isFuelSale) {
+    fuelLitersInput.value = '';
+    amountInput.value = '';
+    return;
+  }
+  updateFuelSaleAmount();
+}
+
+function updateFuelSaleAmount() {
+  const product = document.getElementById('fuelTypeInput').value;
+  const price = fuelPrices[product];
+  const liters = Number(document.getElementById('fuelLitersInput').value);
+  const amountInput = document.getElementById('amountInput');
+  const total = Number.isFinite(liters) && liters > 0 ? Math.round(price * liters) : 0;
+  amountInput.value = total || '';
+  document.getElementById('fuelPriceHint').textContent = total
+    ? `${product} · ${rupiah.format(price)} / liter · Total ${rupiah.format(total)}`
+    : `Harga ${product}: ${rupiah.format(price)} per liter`;
 }
 
 function renderSummary() {
@@ -381,6 +411,7 @@ function openModal() {
   state.type = 'income';
   document.querySelectorAll('.type-option').forEach((button) => button.classList.toggle('selected', button.dataset.type === state.type));
   renderCategories();
+  updateFuelSaleFields();
   elements.modal.hidden = false;
   document.body.classList.add('modal-open');
   window.setTimeout(() => document.getElementById('categoryInput').focus(), 50);
@@ -431,6 +462,22 @@ async function saveTransaction(event) {
   try {
     data.description = String(data.description || '').trim();
     data.receipt_text = String(data.receipt_text || '').trim();
+    const category = state.dashboard.categories.find((item) => item.id === data.category_id);
+    if (category?.name === 'Penjualan BBM' && category.type === 'income') {
+      const product = data.fuel_type;
+      const liters = Number(data.fuel_liters);
+      const price = fuelPrices[product];
+      if (!price || !Number.isFinite(liters) || liters < 0.01) {
+        throw new Error('Pilih jenis bensin dan masukkan jumlah liter minimal 0,01.');
+      }
+      data.amount = Math.round(price * liters);
+      const litersText = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(liters);
+      data.description = [data.description, `${product} · ${litersText} L`].filter(Boolean).join(' — ');
+      data.receipt_text = [
+        `${product} · ${litersText} liter × ${rupiah.format(price)} / liter = ${rupiah.format(data.amount)}`,
+        data.receipt_text,
+      ].filter(Boolean).join('\n\n');
+    }
     if (data.receipt_text.length > 2000) throw new Error('Rincian struk maksimal 2.000 karakter.');
     const result = await supabaseClient.from('cash_transactions').insert({
       shift_id: state.dashboard.activeShift.id,
@@ -512,6 +559,9 @@ document.getElementById('dismissNotice').addEventListener('click', () => { eleme
 elements.shiftAction.addEventListener('click', openShiftModal);
 elements.form.addEventListener('submit', saveTransaction);
 elements.shiftForm.addEventListener('submit', saveShift);
+elements.categories.addEventListener('change', updateFuelSaleFields);
+document.getElementById('fuelTypeInput').addEventListener('change', updateFuelSaleAmount);
+document.getElementById('fuelLitersInput').addEventListener('input', updateFuelSaleAmount);
 elements.modal.addEventListener('click', (event) => {
   if (event.target === elements.modal || event.target.closest('[data-close-modal]')) closeModal();
 });
@@ -528,6 +578,7 @@ document.querySelectorAll('.type-option').forEach((button) => button.addEventLis
   state.type = button.dataset.type;
   document.querySelectorAll('.type-option').forEach((option) => option.classList.toggle('selected', option === button));
   renderCategories();
+  updateFuelSaleFields();
 }));
 document.getElementById('transactionSearch').addEventListener('input', (event) => {
   state.search = event.target.value.trim();

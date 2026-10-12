@@ -58,6 +58,7 @@ Jika login ditolak karena URL redirect, tambahkan URL GitHub Pages atau URL loka
 - Grafik arus kas 7 atau 14 hari terakhir.
 - Pencatatan transaksi tunai, transfer, atau kartu/QRIS.
 - Catatan teks struk/rincian pada transaksi pemasukan maupun pengeluaran.
+- Penjualan BBM V1, V2, dan SX dengan harga per liter dan hitung total otomatis berdasarkan jumlah liter.
 - Pembukaan dan penutupan shift kasir.
 - Pencarian dan filter transaksi.
 - Login operator dan penyimpanan data menggunakan Supabase.

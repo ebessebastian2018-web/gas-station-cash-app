@@ -274,6 +274,17 @@
           <div class="type-segment" role="group" aria-label="Jenis transaksi"><button class="type-option selected" type="button" data-type="income"><i data-lucide="arrow-down-left"></i>Pemasukan</button><button class="type-option" type="button" data-type="expense"><i data-lucide="arrow-up-right"></i>Pengeluaran</button></div>
           <input type="hidden" name="type" value="income" />
           <label class="field-label" for="categoryInput">Kategori</label><select class="form-control" id="categoryInput" name="category_id" required><option value="">Pilih kategori</option></select>
+          <div class="fuel-fields" id="fuelFields" hidden>
+            <label class="field-label" for="fuelTypeInput">Jenis bensin</label>
+            <select class="form-control" id="fuelTypeInput" name="fuel_type">
+              <option value="V1" data-price="10000">V1 — Rp10.000 / liter</option>
+              <option value="V2" data-price="15000">V2 — Rp15.000 / liter</option>
+              <option value="SX" data-price="7500">SX — Rp7.500 / liter</option>
+            </select>
+            <label class="field-label" for="fuelLitersInput">Jumlah liter</label>
+            <div class="fuel-quantity-wrap"><input class="form-control" id="fuelLitersInput" name="fuel_liters" type="number" min="0.01" step="0.01" placeholder="Contoh: 10" /><span>liter</span></div>
+            <p class="field-hint" id="fuelPriceHint">Harga V1: Rp10.000 per liter</p>
+          </div>
           <label class="field-label" for="amountInput">Jumlah</label><div class="amount-input-wrap"><span>Rp</span><input class="form-control amount-input" id="amountInput" name="amount" type="number" min="1" step="1" placeholder="0" required /></div>
           <label class="field-label" for="descriptionInput">Keterangan <span>(opsional)</span></label><input class="form-control" id="descriptionInput" name="description" maxlength="160" placeholder="Contoh: Penjualan shift pagi" />
           <label class="field-label" for="paymentInput">Metode pembayaran</label><select class="form-control" id="paymentInput" name="payment_method"><option value="cash">Tunai</option><option value="transfer">Transfer</option><option value="card">Kartu / QRIS</option></select>
