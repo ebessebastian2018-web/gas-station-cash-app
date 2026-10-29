@@ -576,7 +576,8 @@ function openModal() {
     return;
   }
   if (state.role === 'admin' && !state.dashboard?.activeShift) {
-    showToast('Mulai shift kasir terlebih dahulu.', true);
+    openShiftModal();
+    showToast('Mulai shift terlebih dahulu sebelum mencatat penjualan.');
     return;
   }
   elements.form.reset();
@@ -631,7 +632,11 @@ async function saveTransaction(event) {
   const data = Object.fromEntries(formData.entries());
   data.amount = Number(data.amount);
   submit.disabled = true;
+  submit.innerHTML = '<i data-lucide="loader-circle"></i>Menyimpan...';
+  if (window.lucide) window.lucide.createIcons();
   elements.formError.hidden = true;
+  const requestController = new AbortController();
+  const requestTimeout = window.setTimeout(() => requestController.abort(), 20000);
   try {
     data.description = String(data.description || '').trim();
     data.receipt_text = String(data.receipt_text || '').trim();
@@ -662,16 +667,21 @@ async function saveTransaction(event) {
       description: data.description,
       payment_method: data.payment_method,
       receipt_text: data.receipt_text || null,
-    });
+    }).abortSignal(requestController.signal);
     assertSupabaseSuccess(result);
     closeModal();
     showToast('Transaksi berhasil dicatat.');
     await refreshDashboard();
   } catch (error) {
-    elements.formError.textContent = error.message;
+    elements.formError.textContent = error.name === 'AbortError'
+      ? 'Permintaan terlalu lama dan status penyimpanan belum dapat dipastikan. Periksa status transaksi sebelum mencoba lagi.'
+      : supabaseErrorMessage(error);
     elements.formError.hidden = false;
   } finally {
+    window.clearTimeout(requestTimeout);
     submit.disabled = false;
+    submit.innerHTML = '<i data-lucide="check"></i>Simpan transaksi';
+    if (window.lucide) window.lucide.createIcons();
   }
 }
 
