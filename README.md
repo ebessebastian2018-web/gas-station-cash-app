@@ -22,15 +22,15 @@ Isi kolom berikut sendiri apabila sudah menyiapkan akun operator untuk demonstra
 
 | Username / email | Password |
 |---|---|
-| `ebessebastian2018@gmail.com` | `123456` |
+| `[ISI SENDIRI]` | `[ISI SENDIRI]` |
 
 > **Keamanan:** repository dan README GitHub dapat dilihat publik. Jangan masukkan password asli, service-role key, atau rahasia lain ke dokumen ini. Gunakan akun demo khusus dengan akses minimum, atau bagikan kredensial secara privat kepada dosen/penguji.
 
 ## Penjelasan sistem
 
-Bas Station adalah aplikasi web untuk membantu pencatatan dan pemantauan kas operasional SPBU. Operator masuk menggunakan akun Supabase, kemudian menggunakan halaman Ringkasan, Transaksi, Shift Kasir, dan Laporan. Data aplikasi disimpan di PostgreSQL melalui Supabase; aplikasi tidak mempunyai server backend terpisah.
+Bas Station adalah aplikasi web untuk membantu pencatatan dan pemantauan kas operasional SPBU. Admin masuk untuk memulai atau menutup shift, sedangkan owner melihat ringkasan, transaksi, laporan, jurnal umum, dan buku besar. Data aplikasi disimpan di PostgreSQL melalui Supabase; aplikasi tidak mempunyai server backend terpisah.
 
-Frontend statis berkomunikasi langsung dengan Supabase menggunakan Supabase JavaScript client. Pengguna yang belum masuk akan diarahkan ke formulir login. Operasi baca dan tulis dibatasi untuk pengguna terautentikasi melalui Row Level Security (RLS).
+Frontend statis berkomunikasi langsung dengan Supabase menggunakan Supabase JavaScript client. Pengguna yang belum masuk atau belum diberi peran akan diarahkan ke formulir login. Operasi baca dan tulis dibatasi berdasarkan peran melalui Row Level Security (RLS).
 
 ## Fitur
 
@@ -38,8 +38,11 @@ Frontend statis berkomunikasi langsung dengan Supabase menggunakan Supabase Java
 - **Transaksi:** pencatatan kas masuk dan keluar, pencarian, filter jenis transaksi, metode pembayaran, dan rincian struk berbasis teks.
 - **Penjualan BBM:** pilihan V1 (Rp10.000/liter), V2 (Rp15.000/liter), dan SX (Rp7.500/liter); jumlah transaksi dihitung otomatis dari jumlah liter.
 - **Shift kasir:** memulai shift dengan kas awal, melihat kasir dan waktu mulai, serta menutup shift dengan memasukkan jumlah kas fisik.
-- **Laporan:** grafik pemasukan dan pengeluaran tunai untuk 7 atau 14 hari terakhir serta komposisi arus kas.
-- **Autentikasi:** login dan logout akun operator yang dikelola melalui Supabase Authentication.
+- **Laporan:** grafik arus kas, komposisi kas, serta ringkasan pendapatan, beban, dan laba/rugi bersih berdasarkan jurnal untuk 7 atau 14 hari terakhir; tersedia akses cepat ke jurnal umum dan buku besar.
+- **Jurnal umum:** transaksi kas menghasilkan jurnal debit-kredit otomatis; owner juga dapat mencatat jurnal manual yang seimbang.
+- **Buku besar:** melihat mutasi dan saldo berjalan untuk setiap akun.
+- **Hak akses:** admin hanya dapat mengelola pembukaan dan penutupan shift; owner tidak perlu mengelola shift dan dapat mencatat transaksi serta melihat ringkasan, laporan, jurnal, dan buku besar.
+- **Autentikasi:** login dan logout akun yang dikelola melalui Supabase Authentication; peran ditetapkan manual oleh pengelola.
 - **Tampilan responsif:** navigasi menu seluler dengan backdrop, kontrol ramah sentuhan, dan transaksi dalam bentuk kartu pada layar ponsel.
 
 ## Logika akuntansi dan perhitungan
@@ -61,13 +64,36 @@ Frontend statis berkomunikasi langsung dengan Supabase menggunakan Supabase Java
 
 > Ringkasan ini merupakan pencatatan operasional kas, bukan pengganti buku besar, jurnal akuntansi lengkap, rekonsiliasi bank, atau laporan keuangan resmi.
 
+### Jurnal dan buku besar
+
+- Transaksi baru otomatis diposting ke jurnal berpasangan: pemasukan mendebit kas/bank dan mengkredit akun pendapatan; pengeluaran mendebit akun kategori dan mengkredit kas/bank.
+- Metode tunai menggunakan akun **Kas Tunai**; transfer dan kartu/QRIS menggunakan **Bank / QRIS**.
+- Kategori awal dipetakan ke akun persediaan, pendapatan, atau beban. Kategori tambahan yang belum dipetakan menggunakan akun pendapatan/beban lain-lain.
+- Jurnal manual hanya dapat dibuat oleh owner dan harus memiliki minimal dua baris dengan total debit sama dengan kredit.
+- Menjalankan schema akan membuat akun awal dan membentuk jurnal untuk transaksi lama yang belum mempunyai jurnal.
+- Akun awal ditujukan untuk demonstrasi. Tinjau pemetaan dan perlakuan akuntansi agar sesuai kebijakan pembukuan usaha sebelum digunakan sebagai laporan resmi.
+
 ## ERD
 
 ```mermaid
 erDiagram
+    AUTH_USERS ||--o| APP_USER_ROLES : "diberi peran"
     CASHIERS ||--o{ SHIFTS : "bertugas pada"
     SHIFTS ||--o{ CASH_TRANSACTIONS : "mencatat"
     TRANSACTION_CATEGORIES ||--o{ CASH_TRANSACTIONS : "mengelompokkan"
+    CHART_ACCOUNTS ||--o{ TRANSACTION_CATEGORIES : "akun default"
+    CHART_ACCOUNTS ||--o{ JOURNAL_ENTRY_LINES : "diposting ke"
+    JOURNAL_ENTRIES ||--|{ JOURNAL_ENTRY_LINES : "terdiri dari"
+    CASH_TRANSACTIONS ||--o| JOURNAL_ENTRIES : "diposting otomatis"
+
+    AUTH_USERS {
+        uuid id PK
+    }
+
+    APP_USER_ROLES {
+        uuid user_id PK
+        text role
+    }
 
     CASHIERS {
         uuid id PK
@@ -91,6 +117,7 @@ erDiagram
         uuid id PK
         text name UK
         text type
+        uuid ledger_account_id FK
         boolean active
         timestamptz created_at
     }
@@ -105,6 +132,30 @@ erDiagram
         text receipt_text
         timestamptz occurred_at
         timestamptz created_at
+    }
+
+    CHART_ACCOUNTS {
+        uuid id PK
+        text code UK
+        text name
+        text account_type
+        boolean active
+    }
+
+    JOURNAL_ENTRIES {
+        uuid id PK
+        date entry_date
+        text description
+        text source_type
+        uuid source_id
+    }
+
+    JOURNAL_ENTRY_LINES {
+        uuid id PK
+        uuid entry_id FK
+        uuid account_id FK
+        numeric debit
+        numeric credit
     }
 ```
 
@@ -142,12 +193,21 @@ Relasi utama: satu kasir dapat memiliki banyak shift, satu shift dapat mencatat 
 ### Supabase
 
 1. Buat atau pilih project Supabase.
-2. Buka **SQL Editor** dan jalankan seluruh isi [`backend/schema.sql`](backend/schema.sql).
-3. Buat akun operator melalui **Authentication → Users → Add user**. Konfirmasikan email jika pengaturan project memerlukannya.
-4. Pastikan project URL dan publishable key pada bagian awal [`frontend/app.js`](frontend/app.js) mengarah ke project yang benar.
-5. Tambahkan URL demo GitHub Pages dan URL lokal yang digunakan pada **Authentication → URL Configuration → Redirect URLs**, bila dibutuhkan.
+2. Buat akun operator melalui **Authentication → Users → Add user**. Konfirmasikan email jika pengaturan project memerlukannya.
+3. Buka **SQL Editor** dan jalankan seluruh isi [`backend/schema.sql`](backend/schema.sql). Bagian akhir schema menetapkan UUID owner `968e2437-698a-44e3-ae91-a127e2475da9` dan admin `852217c1-9fa8-4e00-bb70-2adf8eef2faa`. Pastikan kedua akun tersebut sudah dibuat di project ini sebelum menjalankan schema.
+4. Untuk project Supabase lain, ubah dua UUID tersebut pada bagian akhir schema sesuai UUID pengguna di **Authentication → Users**, atau tetapkan peran secara manual melalui SQL Editor:
 
-Schema menyiapkan tabel kasir, shift, kategori transaksi, transaksi kas, indeks, hak akses, dan RLS untuk operator terautentikasi. Schema juga memasukkan kategori dan kasir awal bila belum tersedia.
+   ```sql
+   insert into public.app_user_roles (user_id, role)
+   values ('UUID-AKUN-DARI-SUPABASE-AUTH', 'owner')
+   on conflict (user_id) do update set role = excluded.role;
+   ```
+
+   Gunakan peran `owner` atau `admin` sesuai kebutuhan. Admin hanya dapat membuka/menutup shift; owner dapat melihat ringkasan, transaksi, laporan, jurnal, dan buku besar. Jangan menerima pendaftaran peran dari browser.
+5. Pastikan project URL dan publishable key pada bagian awal [`frontend/app.js`](frontend/app.js) mengarah ke project yang benar.
+6. Tambahkan URL demo GitHub Pages dan URL lokal yang digunakan pada **Authentication → URL Configuration → Redirect URLs**, bila dibutuhkan.
+
+Schema menyiapkan tabel kasir, shift, kategori transaksi, transaksi kas, peran pengguna, akun, jurnal, indeks, RLS, dan data awal. RLS memvalidasi peran di database, jadi menyembunyikan menu pada frontend bukan satu-satunya lapisan pembatas akses. Jalankan ulang schema untuk memperbarui tabel dan policy pada project yang sudah berisi data.
 
 ### Lokal
 

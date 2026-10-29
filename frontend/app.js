@@ -10,12 +10,15 @@ const supabaseClient = hasSupabaseConfig && window.supabase
 const state = {
   dashboard: null,
   page: null,
+  role: null,
+  userEmail: '',
   type: 'income',
   filter: 'all',
   search: '',
   expanded: false,
   chartDays: 7,
   toastTimer: null,
+  ledgerRequest: 0,
 };
 
 const elements = {
@@ -46,6 +49,12 @@ const elements = {
   shiftModal: document.getElementById('shiftModal'),
   shiftForm: document.getElementById('shiftForm'),
   shiftFormError: document.getElementById('shiftFormError'),
+  journalModal: document.getElementById('journalModal'),
+  journalForm: document.getElementById('journalForm'),
+  journalLines: document.getElementById('journalLines'),
+  journalFormError: document.getElementById('journalFormError'),
+  journalRows: document.getElementById('journalRows'),
+  ledgerRows: document.getElementById('ledgerRows'),
   shiftState: document.getElementById('shiftState'),
   shiftCashier: document.getElementById('shiftCashier'),
   shiftTime: document.getElementById('shiftTime'),
@@ -72,6 +81,7 @@ function escapeHtml(value) {
 function supabaseErrorMessage(error) {
   const message = String(error?.message || 'Permintaan ke Supabase gagal.');
   if (message.toLowerCase().includes('failed to fetch')) return 'Tidak dapat menghubungi Supabase. Periksa URL, publishable key, dan koneksi internet.';
+  if (message.includes('app_user_roles') || message.includes('chart_accounts') || message.includes('journal_entries') || message.includes('journal_entry_lines')) return 'Skema peran dan akuntansi belum tersedia. Jalankan ulang backend/schema.sql di Supabase SQL Editor.';
   if (message.includes('receipt_text') || error?.code === '42703') return 'Kolom struk belum tersedia. Jalankan backend/schema.sql di Supabase SQL Editor.';
   if (error?.code === '42501' || message.toLowerCase().includes('row-level security')) {
     return 'Akses data ditolak oleh RLS. Jalankan ulang backend/schema.sql di Supabase SQL Editor.';
@@ -87,10 +97,40 @@ function assertSupabaseSuccess(result) {
 }
 
 function showAuthScreen(message = '') {
+  state.role = null;
+  state.userEmail = '';
+  state.dashboard = null;
   elements.appShell.hidden = true;
   elements.authScreen.hidden = false;
   elements.authMessage.textContent = message;
   if (window.lucide) window.lucide.createIcons();
+}
+
+async function openAuthorizedApplication(session) {
+  const roleResult = await supabaseClient.from('app_user_roles')
+    .select('role').eq('user_id', session.user.id).maybeSingle();
+  const role = assertSupabaseSuccess(roleResult)?.role;
+  if (!['admin', 'owner'].includes(role)) {
+    await supabaseClient.auth.signOut();
+    throw new Error('Akun ini belum memiliki peran admin atau owner. Hubungi pengelola aplikasi.');
+  }
+  state.role = role;
+  state.userEmail = session.user.email || 'Operator';
+  document.getElementById('profileRole').textContent = role === 'owner' ? 'Owner' : 'Admin';
+  document.querySelectorAll('.nav-link').forEach((link) => {
+    link.hidden = role === 'admin'
+      ? link.dataset.section !== 'shift'
+      : link.dataset.section === 'shift';
+  });
+  document.getElementById('shift').hidden = role !== 'admin';
+  document.querySelector('.shift-balance-card').hidden = role === 'admin';
+  document.querySelector('.shift-guide-grid').hidden = role !== 'admin';
+  document.getElementById('addTransactionButton').hidden = role !== 'owner';
+  elements.shiftAction.hidden = role !== 'admin';
+  elements.authScreen.hidden = true;
+  elements.appShell.hidden = false;
+  showPage(role === 'admin' ? 'shift' : window.location.hash.slice(1) || 'ringkasan');
+  await refreshDashboard();
 }
 
 async function initializeApplication() {
@@ -109,9 +149,7 @@ async function initializeApplication() {
       showAuthScreen();
       return;
     }
-    elements.authScreen.hidden = true;
-    elements.appShell.hidden = false;
-    await refreshDashboard();
+    await openAuthorizedApplication(data.session);
   } catch (error) {
     showAuthScreen(supabaseErrorMessage(error));
   }
@@ -124,7 +162,7 @@ async function signIn(event) {
   const values = Object.fromEntries(new FormData(elements.loginForm).entries());
   try {
     if (!supabaseClient) throw new Error('Isi SUPABASE_URL dan SUPABASE_PUBLISHABLE_KEY pada frontend/app.js.');
-    const { error } = await supabaseClient.auth.signInWithPassword({
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
       email: values.email.trim(),
       password: values.password,
     });
@@ -134,9 +172,7 @@ async function signIn(event) {
         : supabaseErrorMessage(error);
       throw new Error(message);
     }
-    elements.authScreen.hidden = true;
-    elements.appShell.hidden = false;
-    await refreshDashboard();
+    await openAuthorizedApplication(data.session);
   } catch (error) {
     elements.authMessage.textContent = supabaseErrorMessage(error);
   } finally {
@@ -164,8 +200,8 @@ function setConnection(connected) {
   document.getElementById('systemStatus').textContent = connected
     ? 'Sistem beroperasi normal'
     : 'Supabase belum terhubung';
-  document.getElementById('addTransactionButton').disabled = !connected;
-  elements.shiftAction.disabled = !connected;
+  document.getElementById('addTransactionButton').disabled = !connected || state.role !== 'owner';
+  elements.shiftAction.disabled = !connected || state.role !== 'admin';
   if (!connected) {
     elements.shiftState.textContent = 'Supabase belum terhubung';
     elements.shiftState.previousElementSibling.classList.add('closed');
@@ -241,7 +277,7 @@ function renderSummary() {
     : 'Mulai shift <i data-lucide="arrow-up-right"></i>';
   document.getElementById('balanceContext').textContent = activeShift ? 'Shift aktif' : 'Belum ada shift';
   document.getElementById('shiftPageBalance').textContent = rupiah.format(summary.balance);
-  document.getElementById('profileName').textContent = activeShift?.cashier?.full_name || state.dashboard.cashiers[0]?.full_name || 'Kasir Utama';
+  document.getElementById('profileName').textContent = state.userEmail || 'Operator';
 }
 
 function renderChart() {
@@ -271,6 +307,28 @@ function renderComposition() {
   document.getElementById('donutTotal').textContent = rupiah.format(total);
   document.getElementById('compositionIncome').textContent = rupiah.format(income);
   document.getElementById('compositionExpense').textContent = rupiah.format(expense);
+}
+
+function renderProfitLoss() {
+  const entries = state.dashboard?.profitLossEntries || [];
+  const start = new Date(`${state.dashboard.date}T00:00:00.000Z`);
+  start.setUTCDate(start.getUTCDate() - (state.chartDays - 1));
+  const startDate = start.toISOString().slice(0, 10);
+  const periodEntries = entries.filter((entry) => entry.entry_date >= startDate && entry.entry_date <= state.dashboard.date);
+  let revenue = 0;
+  let expenses = 0;
+  for (const entry of periodEntries) {
+    for (const line of entry.journal_entry_lines || []) {
+      if (line.account?.account_type === 'revenue') revenue += Number(line.credit) - Number(line.debit);
+      if (line.account?.account_type === 'expense') expenses += Number(line.debit) - Number(line.credit);
+    }
+  }
+  const profit = revenue - expenses;
+  document.getElementById('profitLossPeriod').textContent = `Berdasarkan jurnal ${state.chartDays} hari · ${startDate} – ${state.dashboard.date}`;
+  document.getElementById('reportRevenue').textContent = rupiah.format(revenue);
+  document.getElementById('reportExpenses').textContent = rupiah.format(expenses);
+  document.getElementById('reportProfit').textContent = rupiah.format(Math.abs(profit));
+  document.getElementById('profitLabel').textContent = profit < 0 ? 'Rugi bersih' : 'Laba bersih';
 }
 
 function transactionMarkup(transaction) {
@@ -305,6 +363,62 @@ function renderTransactions() {
     : 'Lihat semua <i data-lucide="arrow-right"></i>';
   document.getElementById('viewAllButton').hidden = filtered.length <= 5;
   if (window.lucide) window.lucide.createIcons();
+}
+
+function renderJournals() {
+  const entries = state.dashboard?.journalEntries || [];
+  const rows = entries.flatMap((entry) => (entry.journal_entry_lines || []).map((line) => {
+    const source = entry.source_type === 'manual' ? 'Manual' : 'Otomatis · transaksi kas';
+    return `<tr><td data-label="Tanggal">${escapeHtml(entry.entry_date)}</td><td data-label="Keterangan">${escapeHtml(entry.description)}</td><td data-label="Akun">${escapeHtml(line.account?.code || '')} · ${escapeHtml(line.account?.name || 'Akun')}</td><td data-label="Debit" class="amount-cell">${escapeHtml(rupiah.format(Number(line.debit)))}</td><td data-label="Kredit" class="amount-cell">${escapeHtml(rupiah.format(Number(line.credit)))}</td><td data-label="Sumber">${source}</td></tr>`;
+  }));
+  elements.journalRows.innerHTML = rows.length
+    ? rows.join('')
+    : '<tr class="empty-row"><td colspan="6"><strong>Belum ada jurnal</strong><span>Jurnal otomatis muncul saat transaksi dicatat.</span></td></tr>';
+  document.getElementById('journalSummary').textContent = `${entries.length} jurnal · ${rows.length} baris`;
+}
+
+function renderLedgerAccounts(selectedId) {
+  const accounts = state.dashboard?.accounts || [];
+  const select = document.getElementById('ledgerAccount');
+  select.innerHTML = accounts.map((account) => `<option value="${escapeHtml(account.id)}">${escapeHtml(account.code)} · ${escapeHtml(account.name)}</option>`).join('');
+  if (!accounts.length) {
+    select.innerHTML = '<option value="">Belum ada akun</option>';
+    return;
+  }
+  const account = accounts.find((item) => item.id === selectedId) || accounts[0];
+  select.value = account.id;
+  document.getElementById('ledgerAccountTitle').textContent = `${account.code} · ${account.name}`;
+}
+
+async function loadLedger(accountId) {
+  if (!accountId || state.role !== 'owner') return;
+  const requestId = ++state.ledgerRequest;
+  const lines = [];
+  for (let offset = 0; ; offset += 1000) {
+    const result = await supabaseClient.from('journal_entry_lines')
+      .select('debit,credit,entry:journal_entries!inner(entry_date,description,source_type,created_at)')
+      .eq('account_id', accountId).range(offset, offset + 999);
+    const page = assertSupabaseSuccess(result) || [];
+    lines.push(...page);
+    if (page.length < 1000) break;
+  }
+  if (requestId !== state.ledgerRequest) return;
+  const account = state.dashboard.accounts.find((item) => item.id === accountId);
+  const debitNormal = ['asset', 'expense'].includes(account?.account_type);
+  const sorted = [...lines].sort((a, b) => {
+    const dateOrder = String(a.entry.entry_date).localeCompare(String(b.entry.entry_date));
+    return dateOrder || String(a.entry.created_at).localeCompare(String(b.entry.created_at));
+  });
+  let balance = 0;
+  elements.ledgerRows.innerHTML = sorted.length ? sorted.map((line) => {
+    const debit = Number(line.debit);
+    const credit = Number(line.credit);
+    balance += debitNormal ? debit - credit : credit - debit;
+    const source = line.entry.source_type === 'manual' ? 'Manual' : 'Otomatis';
+    return `<tr><td data-label="Tanggal">${escapeHtml(line.entry.entry_date)}</td><td data-label="Keterangan">${escapeHtml(line.entry.description)}</td><td data-label="Sumber">${source}</td><td data-label="Debit" class="amount-cell">${debit ? escapeHtml(rupiah.format(debit)) : '—'}</td><td data-label="Kredit" class="amount-cell">${credit ? escapeHtml(rupiah.format(credit)) : '—'}</td><td data-label="Saldo" class="amount-cell">${escapeHtml(rupiah.format(balance))}</td></tr>`;
+  }).join('') : '<tr class="empty-row"><td colspan="6">Belum ada mutasi untuk akun ini.</td></tr>';
+  document.getElementById('ledgerBalance').textContent = `Saldo akhir ${rupiah.format(balance)}`;
+  document.getElementById('ledgerSummary').textContent = `${sorted.length} mutasi`;
 }
 
 function renderDashboard() {
@@ -348,6 +462,29 @@ async function refreshDashboard() {
     const cashiers = assertSupabaseSuccess(cashiersResult) || [];
     const openShifts = assertSupabaseSuccess(shiftsResult) || [];
     const activeShift = openShifts[0] || null;
+    const accountsResult = state.role === 'owner'
+      ? await supabaseClient.from('chart_accounts')
+        .select('id,code,name,account_type').eq('active', true).order('code')
+      : null;
+    const journalEntriesResult = state.role === 'owner'
+      ? await supabaseClient.from('journal_entries')
+        .select('id,entry_date,description,source_type,journal_entry_lines(debit,credit,account:chart_accounts(code,name))')
+        .order('entry_date', { ascending: false }).order('created_at', { ascending: false }).limit(250)
+      : null;
+    const profitLossEntries = [];
+    if (state.role === 'owner') {
+      for (let offset = 0; ; offset += 1000) {
+        const result = await supabaseClient.from('journal_entries')
+          .select('id,entry_date,journal_entry_lines(debit,credit,account:chart_accounts(account_type))')
+          .gte('entry_date', rangeStart.toISOString().slice(0, 10))
+          .lte('entry_date', date)
+          .order('entry_date', { ascending: true })
+          .range(offset, offset + 999);
+        const page = assertSupabaseSuccess(result) || [];
+        profitLossEntries.push(...page);
+        if (page.length < 1000) break;
+      }
+    }
     const shiftTransactionsResult = activeShift
       ? await supabaseClient.from('cash_transactions')
         .select('amount,payment_method,category:transaction_categories(type)')
@@ -392,9 +529,19 @@ async function refreshDashboard() {
       categories,
       cashiers,
       activeShift,
+      accounts: state.role === 'owner' ? assertSupabaseSuccess(accountsResult) || [] : [],
+      journalEntries: state.role === 'owner' ? assertSupabaseSuccess(journalEntriesResult) || [] : [],
+      profitLossEntries,
     };
     setConnection(true);
     renderDashboard();
+    if (state.role === 'owner') {
+      renderJournals();
+      renderProfitLoss();
+      renderLedgerAccounts(document.getElementById('ledgerAccount').value);
+      const selectedAccount = document.getElementById('ledgerAccount').value;
+      if (selectedAccount) await loadLedger(selectedAccount);
+    }
   } catch (error) {
     setConnection(false);
     if (error.status === 401 || error.code === 'PGRST301') {
@@ -445,9 +592,9 @@ function openShiftModal() {
     .map((cashier) => `<option value="${escapeHtml(cashier.id)}">${escapeHtml(cashier.full_name)}</option>`).join('');
   document.getElementById('shiftModalTitle').textContent = isClosing ? 'Tutup shift' : 'Mulai shift';
   document.getElementById('shiftAmountLabel').textContent = isClosing ? 'Kas fisik saat tutup' : 'Saldo kas awal';
-  document.getElementById('shiftBalanceHint').hidden = !isClosing;
+  document.getElementById('shiftBalanceHint').hidden = !isClosing || state.role !== 'owner';
   document.getElementById('shiftExpectedBalance').textContent = rupiah.format(state.dashboard.summary.balance);
-  amountInput.value = isClosing ? String(state.dashboard.summary.balance) : '';
+  amountInput.value = isClosing && state.role === 'owner' ? String(state.dashboard.summary.balance) : '';
   submit.innerHTML = isClosing ? '<i data-lucide="square"></i>Tutup shift' : '<i data-lucide="play"></i>Mulai shift';
   elements.shiftModal.hidden = false;
   document.body.classList.add('modal-open');
@@ -560,6 +707,85 @@ async function saveShift(event) {
   }
 }
 
+function addJournalLine() {
+  const options = ['<option value="">Pilih akun</option>', ...(state.dashboard?.accounts || []).map((account) =>
+    `<option value="${escapeHtml(account.id)}">${escapeHtml(account.code)} · ${escapeHtml(account.name)}</option>`)].join('');
+  const line = document.createElement('div');
+  line.className = 'journal-line';
+  line.innerHTML = `<select class="form-control journal-account" aria-label="Akun jurnal" required>${options}</select><label><span>Debit</span><input class="form-control journal-debit" type="number" min="0" step="0.01" value="0" aria-label="Debit" /></label><label><span>Kredit</span><input class="form-control journal-credit" type="number" min="0" step="0.01" value="0" aria-label="Kredit" /></label><button class="icon-button journal-remove" type="button" aria-label="Hapus baris"><i data-lucide="trash-2"></i></button>`;
+  elements.journalLines.append(line);
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function updateJournalTotals() {
+  const debit = [...elements.journalLines.querySelectorAll('.journal-debit')]
+    .reduce((sum, input) => sum + Number(input.value || 0), 0);
+  const credit = [...elements.journalLines.querySelectorAll('.journal-credit')]
+    .reduce((sum, input) => sum + Number(input.value || 0), 0);
+  const totals = document.getElementById('journalTotals');
+  totals.textContent = `Debit ${rupiah.format(debit)} · Kredit ${rupiah.format(credit)}`;
+  totals.classList.toggle('unbalanced', Math.round(debit * 100) !== Math.round(credit * 100));
+}
+
+function openJournalModal() {
+  elements.journalForm.reset();
+  elements.journalFormError.hidden = true;
+  elements.journalLines.replaceChildren();
+  document.getElementById('journalDate').value = localDateKey();
+  addJournalLine();
+  addJournalLine();
+  updateJournalTotals();
+  elements.journalModal.hidden = false;
+  document.body.classList.add('modal-open');
+  window.setTimeout(() => document.getElementById('journalDate').focus(), 50);
+}
+
+function closeJournalModal() {
+  elements.journalModal.hidden = true;
+  document.body.classList.remove('modal-open');
+}
+
+async function saveManualJournal(event) {
+  event.preventDefault();
+  const submit = document.getElementById('journalSubmit');
+  const formData = new FormData(elements.journalForm);
+  const lines = [...elements.journalLines.querySelectorAll('.journal-line')].map((row) => ({
+    account_id: row.querySelector('.journal-account').value,
+    debit: Number(row.querySelector('.journal-debit').value || 0),
+    credit: Number(row.querySelector('.journal-credit').value || 0),
+  }));
+  const debit = lines.reduce((sum, line) => sum + line.debit, 0);
+  const credit = lines.reduce((sum, line) => sum + line.credit, 0);
+  const debitCents = Math.round(debit * 100);
+  const creditCents = Math.round(credit * 100);
+  const validLines = lines.length >= 2 && lines.every((line) =>
+    line.account_id && Number.isFinite(line.debit) && Number.isFinite(line.credit)
+    && line.debit >= 0 && line.credit >= 0 && ((line.debit > 0) !== (line.credit > 0)));
+  if (!validLines || debitCents <= 0 || debitCents !== creditCents) {
+    elements.journalFormError.textContent = 'Isi akun dan salah satu nominal pada setiap baris. Total debit dan kredit harus sama.';
+    elements.journalFormError.hidden = false;
+    return;
+  }
+  submit.disabled = true;
+  elements.journalFormError.hidden = true;
+  try {
+    const result = await supabaseClient.rpc('create_manual_journal_entry', {
+      p_entry_date: formData.get('entry_date'),
+      p_description: String(formData.get('description') || '').trim(),
+      p_lines: lines,
+    });
+    assertSupabaseSuccess(result);
+    closeJournalModal();
+    showToast('Jurnal umum berhasil disimpan.');
+    await refreshDashboard();
+  } catch (error) {
+    elements.journalFormError.textContent = supabaseErrorMessage(error);
+    elements.journalFormError.hidden = false;
+  } finally {
+    submit.disabled = false;
+  }
+}
+
 document.getElementById('addTransactionButton').addEventListener('click', openModal);
 document.getElementById('refreshButton').addEventListener('click', refreshDashboard);
 elements.loginForm.addEventListener('submit', signIn);
@@ -568,6 +794,21 @@ document.getElementById('dismissNotice').addEventListener('click', () => { eleme
 elements.shiftAction.addEventListener('click', openShiftModal);
 elements.form.addEventListener('submit', saveTransaction);
 elements.shiftForm.addEventListener('submit', saveShift);
+document.getElementById('addJournalButton').addEventListener('click', openJournalModal);
+document.getElementById('refreshJournalButton').addEventListener('click', refreshDashboard);
+document.getElementById('addJournalLineButton').addEventListener('click', addJournalLine);
+elements.journalForm.addEventListener('submit', saveManualJournal);
+elements.journalLines.addEventListener('input', updateJournalTotals);
+elements.journalLines.addEventListener('click', (event) => {
+  if (!event.target.closest('.journal-remove')) return;
+  event.target.closest('.journal-line').remove();
+  updateJournalTotals();
+});
+document.getElementById('ledgerAccount').addEventListener('change', (event) => {
+  const account = state.dashboard?.accounts.find((item) => item.id === event.target.value);
+  if (account) document.getElementById('ledgerAccountTitle').textContent = `${account.code} · ${account.name}`;
+  loadLedger(event.target.value).catch((error) => showToast(supabaseErrorMessage(error), true));
+});
 elements.categories.addEventListener('change', updateFuelSaleFields);
 document.getElementById('fuelTypeOptions').addEventListener('click', (event) => {
   const option = event.target.closest('[data-fuel-type]');
@@ -582,10 +823,14 @@ elements.modal.addEventListener('click', (event) => {
 elements.shiftModal.addEventListener('click', (event) => {
   if (event.target === elements.shiftModal || event.target.closest('[data-close-shift-modal]')) closeShiftModal();
 });
+elements.journalModal.addEventListener('click', (event) => {
+  if (event.target === elements.journalModal || event.target.closest('[data-close-journal-modal]')) closeJournalModal();
+});
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   if (!elements.modal.hidden) closeModal();
   if (!elements.shiftModal.hidden) closeShiftModal();
+  if (!elements.journalModal.hidden) closeJournalModal();
   if (!elements.receiptModal.hidden) closeReceiptModal();
   if (sidebar.classList.contains('open')) setSidebarOpen(false);
 });
@@ -624,6 +869,7 @@ elements.receiptModal.addEventListener('click', (event) => {
 elements.chartRange.addEventListener('change', (event) => {
   state.chartDays = Number(event.target.value);
   renderChart();
+  renderProfitLoss();
 });
 const sidebar = document.getElementById('sidebar');
 const menuToggle = document.getElementById('menuToggle');
@@ -644,7 +890,11 @@ function showPage(section = 'ringkasan') {
     transaksi: 'Transaksi',
     shift: 'Shift kasir',
     laporan: 'Laporan',
+    jurnal: 'Jurnal umum',
+    'buku-besar': 'Buku besar',
   };
+  if (state.role === 'admin' && section !== 'shift') section = 'shift';
+  if (state.role === 'owner' && section === 'shift') section = 'ringkasan';
   const page = Object.hasOwn(pageTitles, section) ? section : 'ringkasan';
   const pageChanged = state.page !== page;
   state.page = page;

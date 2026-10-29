@@ -706,3 +706,48 @@ body.modal-open { overflow: hidden; }
   .search-box { min-width: 0; }
   .filter-button { gap: 4px; padding-right: 6px; padding-left: 6px; }
 }
+
+.ledger-account-select { width: min(100%, 300px); }
+.ledger-account-select .field-label { margin-top: 0; }
+.ledger-balance { color: var(--green-deep); font-size: 12px; font-weight: 700; }
+.profit-loss-panel { margin-top: 18px; padding: 21px; }
+.profit-loss-panel > .panel-heading > svg { width: 20px; color: var(--green); }
+.profit-loss-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.profit-loss-grid article { display: grid; gap: 8px; padding: 16px; border: 1px solid var(--line); border-radius: 9px; background: #fff; }
+.profit-loss-grid article span { color: var(--muted); font-size: 10px; font-weight: 600; }
+.profit-loss-grid article strong { font: 600 20px 'Space Grotesk', sans-serif; }
+.profit-loss-grid .profit-total { border-color: #e6d5aa; background: #fffaf0; }
+.report-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.report-link-card { min-width: 0; display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; color: inherit; background: #fff; text-decoration: none; transition: border-color .18s ease, transform .18s ease; }
+.report-link-card:hover { transform: translateY(-2px); border-color: #d7c5a6; }
+.report-link-card > span:nth-child(2) { min-width: 0; display: grid; gap: 4px; }
+.report-link-card strong { font-size: 11px; }
+.report-link-card small { color: var(--muted); font-size: 9px; }
+.report-link-card .quick-access-arrow { margin-left: auto; }
+.journal-modal { width: min(100%, 760px); }
+.journal-lines-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 20px 0 9px; font-size: 11px; }
+.journal-lines-heading span { color: var(--muted); font-size: 9px; }
+.journal-lines { display: grid; gap: 8px; }
+.journal-line { display: grid; grid-template-columns: minmax(180px, 1.5fr) repeat(2, minmax(100px, 1fr)) 36px; align-items: end; gap: 8px; }
+.journal-line label { display: grid; gap: 4px; color: var(--muted); font-size: 9px; }
+.journal-line .form-control { min-width: 0; }
+.journal-remove { width: 36px; height: 42px; color: #a44c41; }
+.journal-remove svg { width: 16px; }
+.journal-total { margin: 13px 0; color: var(--green-deep); font-size: 11px; font-weight: 700; text-align: right; }
+.journal-total.unbalanced { color: #b64f3c; }
+
+@media (max-width: 620px) {
+  .profit-loss-panel { padding: 16px 13px; }
+  .profit-loss-grid { grid-template-columns: 1fr; gap: 8px; }
+  .profit-loss-grid article { grid-template-columns: 1fr auto; align-items: center; padding: 12px; }
+  .profit-loss-grid article strong { font-size: 16px; }
+  .report-links { grid-template-columns: 1fr; }
+  .journal-lines-heading { align-items: flex-start; flex-direction: column; }
+  .journal-line { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; }
+  .journal-line .journal-account { grid-column: 1 / 3; grid-row: 1; }
+  .journal-line label:nth-of-type(1) { grid-column: 1; grid-row: 2; }
+  .journal-line label:nth-of-type(2) { grid-column: 2; grid-row: 2; }
+  .journal-remove { grid-column: 3; grid-row: 1; }
+  .ledger-account-select { width: 100%; }
+  .ledger-balance { font-size: 10px; }
+}

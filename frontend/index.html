@@ -9,10 +9,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=mobile-20261012" />
+    <link rel="stylesheet" href="styles.css?v=owner-reports-20261029" />
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="app.js?v=mobile-20261012" defer></script>
+    <script src="app.js?v=owner-reports-20261029" defer></script>
   </head>
   <body>
     <main class="auth-screen" id="authScreen">
@@ -124,6 +124,8 @@
           <a class="nav-link" href="#transaksi" data-section="transaksi"><i data-lucide="arrow-left-right"></i><span>Transaksi</span><span class="nav-count" id="navCount">0</span></a>
           <a class="nav-link" href="#shift" data-section="shift"><i data-lucide="timer"></i><span>Shift kasir</span></a>
           <a class="nav-link" href="#laporan" data-section="laporan"><i data-lucide="chart-no-axes-column-increasing"></i><span>Laporan</span></a>
+          <a class="nav-link owner-only" href="#jurnal" data-section="jurnal"><i data-lucide="book-open-text"></i><span>Jurnal umum</span></a>
+          <a class="nav-link owner-only" href="#buku-besar" data-section="buku-besar"><i data-lucide="book-copy"></i><span>Buku besar</span></a>
         </nav>
 
         <div class="sidebar-bottom">
@@ -135,7 +137,7 @@
           </div>
           <div class="profile-button">
             <span class="avatar">KA</span>
-            <span class="profile-copy"><strong id="profileName">Kasir Utama</strong><small>Operator kas</small></span>
+            <span class="profile-copy"><strong id="profileName">Operator</strong><small id="profileRole">Admin</small></span>
             <button class="icon-button sign-out-button" id="signOutButton" type="button" aria-label="Keluar dari akun" title="Keluar"><i data-lucide="log-out"></i></button>
           </div>
         </div>
@@ -160,7 +162,7 @@
             <div><strong>Supabase belum terhubung</strong><p>Periksa koneksi internet, URL project, dan publishable key Supabase.</p></div>
             <button class="icon-button notice-dismiss" id="dismissNotice" type="button" aria-label="Tutup pemberitahuan"><i data-lucide="x"></i></button>
           </div>
-          <div class="page-view" id="ringkasan" data-page-view="ringkasan">
+          <div class="page-view owner-only" id="ringkasan" data-page-view="ringkasan">
           <section class="summary-hero" aria-labelledby="summaryHeroTitle">
             <div class="summary-hero-copy">
               <span class="summary-hero-eyebrow"><span></span>RUANG KENDALI SPBU ANDA</span>
@@ -231,7 +233,7 @@
           </section>
           </div>
 
-          <section class="page-view" id="transaksi" data-page-view="transaksi" hidden>
+          <section class="page-view owner-only" id="transaksi" data-page-view="transaksi" hidden>
             <section class="welcome-row page-heading">
               <div><p class="eyebrow"><span class="eyebrow-line"></span>RIWAYAT OPERASIONAL</p><h1>Transaksi</h1><p class="page-subtitle">Telusuri setiap kas masuk dan keluar di SPBU Melati.</p></div>
               <div class="welcome-actions"><button class="button button-primary" id="addTransactionButton" type="button"><i data-lucide="plus"></i><span>Catat transaksi</span></button></div>
@@ -264,7 +266,7 @@
             </section>
           </section>
 
-          <section class="page-view" id="laporan" data-page-view="laporan" hidden>
+          <section class="page-view owner-only" id="laporan" data-page-view="laporan" hidden>
             <section class="welcome-row page-heading">
               <div><p class="eyebrow"><span class="eyebrow-line"></span>ANALISIS KEUANGAN</p><h1>Laporan</h1><p class="page-subtitle">Bandingkan pemasukan dan pengeluaran untuk memahami arus kas SPBU.</p></div>
               <div class="welcome-actions"><button class="button button-secondary" id="refreshButton" type="button"><i data-lucide="rotate-cw"></i><span>Perbarui laporan</span></button></div>
@@ -291,7 +293,45 @@
             </article>
           </section>
 
+          <section class="panel profit-loss-panel">
+            <div class="panel-heading"><div><h2>Laba rugi</h2><p id="profitLossPeriod">Berdasarkan jurnal 7 hari terakhir</p></div><i data-lucide="chart-no-axes-combined"></i></div>
+            <div class="profit-loss-grid">
+              <article><span>Pendapatan</span><strong id="reportRevenue">Rp0</strong></article>
+              <article><span>Beban</span><strong id="reportExpenses">Rp0</strong></article>
+              <article class="profit-total"><span id="profitLabel">Laba bersih</span><strong id="reportProfit">Rp0</strong></article>
+            </div>
           </section>
+
+          <section class="report-links" aria-label="Laporan akuntansi">
+            <a class="report-link-card" href="#jurnal"><span class="quick-access-icon report"><i data-lucide="book-open-text"></i></span><span><strong>Jurnal umum</strong><small>Lihat seluruh jurnal otomatis dan manual</small></span><i class="quick-access-arrow" data-lucide="arrow-up-right"></i></a>
+            <a class="report-link-card" href="#buku-besar"><span class="quick-access-icon shift"><i data-lucide="book-copy"></i></span><span><strong>Buku besar</strong><small>Lihat mutasi dan saldo per akun</small></span><i class="quick-access-arrow" data-lucide="arrow-up-right"></i></a>
+          </section>
+
+          </section>
+          </section>
+
+          <section class="page-view owner-only" id="jurnal" data-page-view="jurnal" hidden>
+            <section class="welcome-row page-heading">
+              <div><p class="eyebrow"><span class="eyebrow-line"></span>PENCATATAN AKUNTANSI</p><h1>Jurnal umum</h1><p class="page-subtitle">Transaksi kas tercatat otomatis; owner juga dapat menambahkan jurnal manual yang seimbang.</p></div>
+              <div class="welcome-actions"><button class="button button-primary" id="addJournalButton" type="button"><i data-lucide="plus"></i><span>Tambah jurnal</span></button></div>
+            </section>
+            <section class="panel transactions-panel">
+              <div class="panel-heading"><div><h2>Daftar jurnal</h2><p>Jurnal otomatis dan jurnal manual</p></div><button class="button button-secondary" id="refreshJournalButton" type="button"><i data-lucide="rotate-cw"></i><span>Perbarui</span></button></div>
+              <div class="table-scroll"><table><thead><tr><th>TANGGAL</th><th>KETERANGAN</th><th>AKUN</th><th class="amount-head">DEBIT</th><th class="amount-head">KREDIT</th><th>SUMBER</th></tr></thead><tbody id="journalRows"><tr class="empty-row"><td colspan="6">Memuat jurnal...</td></tr></tbody></table></div>
+              <div class="table-footer"><span id="journalSummary">Memuat jurnal...</span></div>
+            </section>
+          </section>
+
+          <section class="page-view owner-only" id="buku-besar" data-page-view="buku-besar" hidden>
+            <section class="welcome-row page-heading">
+              <div><p class="eyebrow"><span class="eyebrow-line"></span>RINCIAN PER AKUN</p><h1>Buku besar</h1><p class="page-subtitle">Telusuri mutasi debit, kredit, dan saldo berjalan untuk setiap akun.</p></div>
+              <label class="ledger-account-select"><span class="field-label" for="ledgerAccount">Pilih akun</span><select class="form-control" id="ledgerAccount"></select></label>
+            </section>
+            <section class="panel transactions-panel">
+              <div class="panel-heading"><div><h2 id="ledgerAccountTitle">Pilih akun untuk melihat mutasi</h2><p>Berdasarkan tanggal jurnal</p></div><span class="ledger-balance" id="ledgerBalance">Saldo akhir Rp0</span></div>
+              <div class="table-scroll"><table><thead><tr><th>TANGGAL</th><th>KETERANGAN</th><th>SUMBER</th><th class="amount-head">DEBIT</th><th class="amount-head">KREDIT</th><th class="amount-head">SALDO</th></tr></thead><tbody id="ledgerRows"><tr class="empty-row"><td colspan="6">Pilih akun untuk melihat buku besar.</td></tr></tbody></table></div>
+              <div class="table-footer"><span id="ledgerSummary">Pilih akun untuk melihat mutasi.</span></div>
+            </section>
           </section>
 
           <footer class="page-footer"><span>© <span id="copyrightYear">2026</span> Bas Station · SPBU Melati</span><span><span class="footer-dot"></span><span id="systemStatus">Menghubungkan ke Supabase</span></span></footer>
@@ -348,6 +388,22 @@
           <div class="amount-input-wrap"><span>Rp</span><input class="form-control amount-input" id="shiftAmountInput" name="amount" type="number" min="0" step="1000" placeholder="0" required /></div>
           <p class="form-error" id="shiftFormError" role="alert" hidden></p>
           <div class="modal-actions"><button class="button button-secondary" type="button" data-close-shift-modal>Batal</button><button class="button button-primary" type="submit" id="shiftSubmit"><i data-lucide="play"></i>Mulai shift</button></div>
+        </form>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="journalModal" hidden>
+      <section class="modal journal-modal" role="dialog" aria-modal="true" aria-labelledby="journalModalTitle">
+        <div class="modal-heading"><div><p class="eyebrow"><span class="eyebrow-line"></span>JURNAL MANUAL</p><h2 id="journalModalTitle">Tambah jurnal umum</h2></div><button class="icon-button" type="button" data-close-journal-modal aria-label="Tutup"><i data-lucide="x"></i></button></div>
+        <form id="journalForm">
+          <label class="field-label" for="journalDate">Tanggal</label><input class="form-control" id="journalDate" name="entry_date" type="date" required />
+          <label class="field-label" for="journalDescription">Keterangan</label><input class="form-control" id="journalDescription" name="description" maxlength="200" required placeholder="Contoh: Penyesuaian kas harian" />
+          <div class="journal-lines-heading"><strong>Baris jurnal</strong><span>Debit harus sama dengan kredit</span></div>
+          <div class="journal-lines" id="journalLines"></div>
+          <button class="text-button" id="addJournalLineButton" type="button"><i data-lucide="plus"></i>Tambah baris</button>
+          <p class="journal-total" id="journalTotals">Debit Rp0 · Kredit Rp0</p>
+          <p class="form-error" id="journalFormError" role="alert" hidden></p>
+          <div class="modal-actions"><button class="button button-secondary" type="button" data-close-journal-modal>Batal</button><button class="button button-primary" type="submit" id="journalSubmit"><i data-lucide="check"></i>Simpan jurnal</button></div>
         </form>
       </section>
     </div>
