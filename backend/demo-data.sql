@@ -1,4 +1,4 @@
--- Data demo untuk mengisi riwayat, laporan, jurnal, dan buku besar.
+-- Data contoh untuk mengisi riwayat, laporan, jurnal, dan buku besar.
 -- Aman dijalankan ulang: ID tetap dan transaksi yang sudah ada tidak diubah.
 -- Transaksi demo tidak dikaitkan dengan shift dan tidak mengubah saldo shift aktif.
 
@@ -46,9 +46,9 @@ select
   null,
   category.id,
   sample.amount,
-  '[DEMO] ' || sample.description,
+  sample.description,
   sample.payment_method,
-  '[DEMO] ' || sample.receipt_text,
+  sample.receipt_text,
   ((current_timestamp at time zone 'Asia/Jakarta')::date - sample.days_ago + time '12:00')
     at time zone 'Asia/Jakarta'
 from (values

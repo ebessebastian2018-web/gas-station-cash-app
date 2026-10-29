@@ -211,7 +211,7 @@ Relasi utama: satu kasir dapat memiliki banyak shift, satu shift dapat mencatat 
 
 Schema menyiapkan tabel kasir, shift, kategori transaksi, transaksi kas, peran pengguna, akun, jurnal, indeks, RLS, dan data awal. RLS memvalidasi peran di database, jadi menyembunyikan menu pada frontend bukan satu-satunya lapisan pembatas akses. Jalankan ulang schema untuk memperbarui tabel dan policy pada project yang sudah berisi data.
 
-Untuk mengisi riwayat, laporan, jurnal, dan buku besar dengan tujuh transaksi contoh, jalankan [`backend/demo-data.sql`](backend/demo-data.sql) setelah schema. Data tersebut ditambahkan ke database yang sedang dipilih, diberi penanda `[DEMO]`, dan masuk ke laporan seperti transaksi biasa. Skrip aman dijalankan ulang; transaksi demo tidak diubah atau diduplikasi. Transaksi contoh tidak dikaitkan dengan shift sehingga tidak mengubah saldo shift aktif. Data ini tetap tersimpan di database sampai dihapus secara manual.
+Untuk mengisi riwayat, laporan, jurnal, dan buku besar dengan tujuh transaksi contoh, jalankan [`backend/demo-data.sql`](backend/demo-data.sql) setelah schema. Data contoh masuk ke laporan seperti transaksi biasa tanpa awalan khusus pada keterangan. Skrip aman dijalankan ulang; transaksi contoh yang sudah ada tidak diubah atau diduplikasi. Transaksi tidak dikaitkan dengan shift sehingga tidak mengubah saldo shift aktif. Data ini tetap tersimpan di database sampai dihapus secara manual.
 
 ### Lokal
 
