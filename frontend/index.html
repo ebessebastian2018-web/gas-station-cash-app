@@ -9,10 +9,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=owner-reports-20261029" />
+    <link rel="stylesheet" href="styles.css?v=owner-sales-20261030" />
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="app.js?v=owner-reports-20261029" defer></script>
+    <script src="app.js?v=owner-sales-20261030" defer></script>
   </head>
   <body>
     <main class="auth-screen" id="authScreen">
@@ -121,7 +121,7 @@
         <p class="nav-label">MENU UTAMA</p>
         <nav class="main-nav" aria-label="Navigasi utama">
           <a class="nav-link active" href="#ringkasan" data-section="ringkasan"><i data-lucide="layout-dashboard"></i><span>Ringkasan</span></a>
-          <a class="nav-link" href="#transaksi" data-section="transaksi"><i data-lucide="arrow-left-right"></i><span>Transaksi</span><span class="nav-count" id="navCount">0</span></a>
+          <a class="nav-link" href="#transaksi" data-section="transaksi"><i data-lucide="arrow-left-right"></i><span id="transactionNavLabel">Transaksi</span><span class="nav-count" id="navCount">0</span></a>
           <a class="nav-link" href="#shift" data-section="shift"><i data-lucide="timer"></i><span>Shift kasir</span></a>
           <a class="nav-link" href="#laporan" data-section="laporan"><i data-lucide="chart-no-axes-column-increasing"></i><span>Laporan</span></a>
           <a class="nav-link owner-only" href="#jurnal" data-section="jurnal"><i data-lucide="book-open-text"></i><span>Jurnal umum</span></a>
@@ -235,10 +235,11 @@
 
           <section class="page-view owner-only" id="transaksi" data-page-view="transaksi" hidden>
             <section class="welcome-row page-heading">
-              <div><p class="eyebrow"><span class="eyebrow-line"></span>RIWAYAT OPERASIONAL</p><h1>Transaksi</h1><p class="page-subtitle">Telusuri setiap kas masuk dan keluar di SPBU Melati.</p></div>
-              <div class="welcome-actions"><button class="button button-primary" id="addTransactionButton" type="button"><i data-lucide="plus"></i><span>Catat transaksi</span></button></div>
+              <div><p class="eyebrow"><span class="eyebrow-line"></span>RIWAYAT OPERASIONAL</p><h1 id="transactionsPageTitle">Transaksi</h1><p class="page-subtitle" id="transactionsPageSubtitle">Telusuri setiap kas masuk dan keluar di SPBU Melati.</p></div>
+              <div class="welcome-actions"><button class="button button-primary" id="addTransactionButton" type="button"><i data-lucide="plus"></i><span id="addTransactionLabel">Catat transaksi</span></button></div>
             </section>
-          <section class="panel transactions-panel">
+            <div class="admin-sales-notice" id="adminSalesNotice" hidden><i data-lucide="info"></i><span>Catat penjualan BBM atau layanan. Admin perlu memulai shift terlebih dahulu agar penjualan masuk ke pencatatan kas shift.</span><a class="text-button" href="#shift">Buka shift</a></div>
+          <section class="panel transactions-panel" id="transactionsHistoryPanel">
             <div class="panel-heading transaction-heading">
               <div><h2>Semua transaksi</h2><p>Catatan kas masuk dan keluar</p></div>
               <div class="table-actions"><label class="search-box"><i data-lucide="search"></i><input id="transactionSearch" type="search" placeholder="Cari transaksi..." aria-label="Cari transaksi" /></label><button class="filter-button" id="typeFilterButton" type="button"><i data-lucide="list-filter"></i><span id="filterLabel">Semua</span><i data-lucide="chevron-down"></i><select id="typeFilter" aria-label="Filter jenis transaksi"><option value="all">Semua</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option></select></button></div>

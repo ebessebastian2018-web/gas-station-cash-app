@@ -119,13 +119,24 @@ async function openAuthorizedApplication(session) {
   document.getElementById('profileRole').textContent = role === 'owner' ? 'Owner' : 'Admin';
   document.querySelectorAll('.nav-link').forEach((link) => {
     link.hidden = role === 'admin'
-      ? link.dataset.section !== 'shift'
+      ? !['shift', 'transaksi'].includes(link.dataset.section)
       : link.dataset.section === 'shift';
   });
   document.getElementById('shift').hidden = role !== 'admin';
+  document.getElementById('transaksi').hidden = false;
+  document.getElementById('transactionsHistoryPanel').hidden = role === 'admin';
+  document.getElementById('adminSalesNotice').hidden = role !== 'admin';
+  document.getElementById('transactionsPageTitle').textContent = role === 'admin' ? 'Penjualan' : 'Transaksi';
+  document.getElementById('transactionsPageSubtitle').textContent = role === 'admin'
+    ? 'Catat penjualan BBM dan layanan SPBU di shift yang sedang berjalan.'
+    : 'Telusuri setiap kas masuk dan keluar di SPBU Melati.';
+  document.getElementById('transactionNavLabel').textContent = role === 'admin' ? 'Penjualan' : 'Transaksi';
+  document.getElementById('addTransactionLabel').textContent = role === 'admin' ? 'Catat penjualan' : 'Catat transaksi';
+  document.getElementById('navCount').hidden = role === 'admin';
+  document.querySelector('[data-type="expense"]').hidden = role === 'admin';
   document.querySelector('.shift-balance-card').hidden = role === 'admin';
   document.querySelector('.shift-guide-grid').hidden = role !== 'admin';
-  document.getElementById('addTransactionButton').hidden = role !== 'owner';
+  document.getElementById('addTransactionButton').hidden = false;
   elements.shiftAction.hidden = role !== 'admin';
   elements.authScreen.hidden = true;
   elements.appShell.hidden = false;
@@ -275,6 +286,12 @@ function renderSummary() {
   elements.shiftAction.innerHTML = activeShift
     ? 'Tutup shift <i data-lucide="arrow-up-right"></i>'
     : 'Mulai shift <i data-lucide="arrow-up-right"></i>';
+  if (state.role === 'admin') {
+    document.querySelector('#adminSalesNotice span').textContent = activeShift
+      ? 'Shift aktif. Catat penjualan BBM atau layanan SPBU; nominal penjualan akan dicatat pada kas shift ini.'
+      : 'Catat penjualan BBM atau layanan SPBU. Admin perlu memulai shift terlebih dahulu agar penjualan masuk ke pencatatan kas shift.';
+    document.querySelector('#adminSalesNotice a').hidden = Boolean(activeShift);
+  }
   document.getElementById('balanceContext').textContent = activeShift ? 'Shift aktif' : 'Belum ada shift';
   document.getElementById('shiftPageBalance').textContent = rupiah.format(summary.balance);
   document.getElementById('profileName').textContent = state.userEmail || 'Operator';
@@ -558,7 +575,7 @@ function openModal() {
     showToast('Hubungkan Supabase sebelum mencatat transaksi.', true);
     return;
   }
-  if (!state.dashboard?.activeShift) {
+  if (state.role === 'admin' && !state.dashboard?.activeShift) {
     showToast('Mulai shift kasir terlebih dahulu.', true);
     return;
   }
@@ -619,6 +636,9 @@ async function saveTransaction(event) {
     data.description = String(data.description || '').trim();
     data.receipt_text = String(data.receipt_text || '').trim();
     const category = state.dashboard.categories.find((item) => item.id === data.category_id);
+    if (state.role === 'admin' && category?.type !== 'income') {
+      throw new Error('Admin hanya dapat mencatat penjualan.');
+    }
     if (category?.name === 'Penjualan BBM' && category.type === 'income') {
       const product = data.fuel_type;
       const liters = Number(data.fuel_liters);
@@ -636,7 +656,7 @@ async function saveTransaction(event) {
     }
     if (data.receipt_text.length > 2000) throw new Error('Rincian struk maksimal 2.000 karakter.');
     const result = await supabaseClient.from('cash_transactions').insert({
-      shift_id: state.dashboard.activeShift.id,
+      shift_id: state.dashboard.activeShift?.id || null,
       category_id: data.category_id,
       amount: data.amount,
       description: data.description,
@@ -893,7 +913,7 @@ function showPage(section = 'ringkasan') {
     jurnal: 'Jurnal umum',
     'buku-besar': 'Buku besar',
   };
-  if (state.role === 'admin' && section !== 'shift') section = 'shift';
+  if (state.role === 'admin' && !['shift', 'transaksi'].includes(section)) section = 'shift';
   if (state.role === 'owner' && section === 'shift') section = 'ringkasan';
   const page = Object.hasOwn(pageTitles, section) ? section : 'ringkasan';
   const pageChanged = state.page !== page;

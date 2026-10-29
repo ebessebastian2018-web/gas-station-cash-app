@@ -35,13 +35,14 @@ Frontend statis berkomunikasi langsung dengan Supabase menggunakan Supabase Java
 ## Fitur
 
 - **Ringkasan:** metrik pemasukan, pengeluaran, saldo tunai shift aktif, dan jumlah transaksi hari ini.
-- **Transaksi:** pencatatan kas masuk dan keluar, pencarian, filter jenis transaksi, metode pembayaran, dan rincian struk berbasis teks.
+- **Transaksi:** pencatatan kas masuk dan keluar, pencarian, filter jenis transaksi, metode pembayaran, dan rincian struk berbasis teks. Owner dapat mencatat tanpa shift; transaksi tetap masuk ke laporan tetapi tidak memengaruhi saldo shift.
 - **Penjualan BBM:** pilihan V1 (Rp10.000/liter), V2 (Rp15.000/liter), dan SX (Rp7.500/liter); jumlah transaksi dihitung otomatis dari jumlah liter.
-- **Shift kasir:** memulai shift dengan kas awal, melihat kasir dan waktu mulai, serta menutup shift dengan memasukkan jumlah kas fisik.
+- **Shift kasir:** admin memulai shift dengan kas awal, lalu dapat mencatat penjualan dan menutup shift dengan memasukkan jumlah kas fisik. Penjualan admin harus terkait dengan shift yang aktif.
+- **Penjualan admin:** mencatat BBM dengan hitung liter otomatis, atau layanan SPBU seperti isi angin, tambal ban bocor, ganti ban, dan ganti oli dengan nominal yang dimasukkan.
 - **Laporan:** grafik arus kas, komposisi kas, serta ringkasan pendapatan, beban, dan laba/rugi bersih berdasarkan jurnal untuk 7 atau 14 hari terakhir; tersedia akses cepat ke jurnal umum dan buku besar.
 - **Jurnal umum:** transaksi kas menghasilkan jurnal debit-kredit otomatis; owner juga dapat mencatat jurnal manual yang seimbang.
 - **Buku besar:** melihat mutasi dan saldo berjalan untuk setiap akun.
-- **Hak akses:** admin hanya dapat mengelola pembukaan dan penutupan shift; owner tidak perlu mengelola shift dan dapat mencatat transaksi serta melihat ringkasan, laporan, jurnal, dan buku besar.
+- **Hak akses:** admin dapat mengelola shift dan mencatat pemasukan/penjualan; owner tidak perlu mengelola shift dan dapat mencatat transaksi serta melihat ringkasan, laporan, jurnal, dan buku besar.
 - **Autentikasi:** login dan logout akun yang dikelola melalui Supabase Authentication; peran ditetapkan manual oleh pengelola.
 - **Tampilan responsif:** navigasi menu seluler dengan backdrop, kontrol ramah sentuhan, dan transaksi dalam bentuk kartu pada layar ponsel.
 

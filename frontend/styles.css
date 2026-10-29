@@ -717,6 +717,9 @@ body.modal-open { overflow: hidden; }
 .profit-loss-grid article span { color: var(--muted); font-size: 10px; font-weight: 600; }
 .profit-loss-grid article strong { font: 600 20px 'Space Grotesk', sans-serif; }
 .profit-loss-grid .profit-total { border-color: #e6d5aa; background: #fffaf0; }
+.admin-sales-notice { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; padding: 13px 15px; border: 1px solid #f0dfb8; border-radius: 9px; color: #66532a; background: #fff9e9; font-size: 10px; line-height: 1.6; }
+.admin-sales-notice > svg { width: 17px; flex: 0 0 auto; color: #a87913; }
+.admin-sales-notice .text-button { flex: 0 0 auto; margin-left: auto; }
 .report-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
 .report-link-card { min-width: 0; display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; color: inherit; background: #fff; text-decoration: none; transition: border-color .18s ease, transform .18s ease; }
 .report-link-card:hover { transform: translateY(-2px); border-color: #d7c5a6; }
@@ -742,6 +745,8 @@ body.modal-open { overflow: hidden; }
   .profit-loss-grid article { grid-template-columns: 1fr auto; align-items: center; padding: 12px; }
   .profit-loss-grid article strong { font-size: 16px; }
   .report-links { grid-template-columns: 1fr; }
+  .admin-sales-notice { align-items: flex-start; flex-wrap: wrap; }
+  .admin-sales-notice .text-button { margin-left: 26px; }
   .journal-lines-heading { align-items: flex-start; flex-direction: column; }
   .journal-line { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; }
   .journal-line .journal-account { grid-column: 1 / 3; grid-row: 1; }

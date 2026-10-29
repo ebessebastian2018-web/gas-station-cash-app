@@ -45,7 +45,7 @@ alter table public.transaction_categories
 
 create table if not exists public.cash_transactions (
   id uuid primary key default gen_random_uuid(),
-  shift_id uuid not null references public.shifts(id) on delete restrict,
+  shift_id uuid references public.shifts(id) on delete restrict,
   category_id uuid not null references public.transaction_categories(id) on delete restrict,
   amount numeric(14, 2) not null check (amount > 0),
   description text not null default '',
@@ -56,6 +56,7 @@ create table if not exists public.cash_transactions (
 );
 
 alter table public.cash_transactions add column if not exists receipt_text text;
+alter table public.cash_transactions alter column shift_id drop not null;
 
 create table if not exists public.app_user_roles (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -211,10 +212,29 @@ create policy transactions_authenticated_read on public.cash_transactions
 drop policy if exists transactions_authenticated_insert on public.cash_transactions;
 create policy transactions_authenticated_insert on public.cash_transactions
   for insert to authenticated with check (
-    public.has_app_role('owner')
-    and exists (
-      select 1 from public.shifts
-      where shifts.id = cash_transactions.shift_id and shifts.status = 'open'
+    (
+      public.has_app_role('owner')
+      and (
+        cash_transactions.shift_id is null
+        or exists (
+          select 1 from public.shifts
+          where shifts.id = cash_transactions.shift_id and shifts.status = 'open'
+        )
+      )
+    )
+    or (
+      public.has_app_role('admin')
+      and cash_transactions.shift_id is not null
+      and exists (
+        select 1 from public.transaction_categories
+        where transaction_categories.id = cash_transactions.category_id
+          and transaction_categories.type = 'income'
+          and transaction_categories.active
+      )
+      and exists (
+        select 1 from public.shifts
+        where shifts.id = cash_transactions.shift_id and shifts.status = 'open'
+      )
     )
   );
 
@@ -255,6 +275,10 @@ where not exists (select 1 from public.cashiers where full_name = 'Kasir Utama')
 insert into public.transaction_categories (name, type) values
   ('Penjualan BBM', 'income'),
   ('Penjualan non-BBM', 'income'),
+  ('Isi angin', 'income'),
+  ('Tambal ban bocor', 'income'),
+  ('Ganti ban', 'income'),
+  ('Ganti oli', 'income'),
   ('Penerimaan lain', 'income'),
   ('Pembelian stok BBM', 'expense'),
   ('Operasional SPBU', 'expense'),
@@ -268,6 +292,10 @@ from public.chart_accounts account
 where (category.name, account.code) in (
   ('Penjualan BBM', '4001'),
   ('Penjualan non-BBM', '4002'),
+  ('Isi angin', '4099'),
+  ('Tambal ban bocor', '4099'),
+  ('Ganti ban', '4099'),
+  ('Ganti oli', '4099'),
   ('Penerimaan lain', '4099'),
   ('Pembelian stok BBM', '1201'),
   ('Operasional SPBU', '5101'),
