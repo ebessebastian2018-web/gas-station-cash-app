@@ -671,7 +671,7 @@ async function saveTransaction(event) {
     assertSupabaseSuccess(result);
     closeModal();
     showToast('Transaksi berhasil dicatat.');
-    await refreshDashboard();
+    void refreshDashboard();
   } catch (error) {
     elements.formError.textContent = error.name === 'AbortError'
       ? 'Permintaan terlalu lama dan status penyimpanan belum dapat dipastikan. Periksa status transaksi sebelum mencoba lagi.'
